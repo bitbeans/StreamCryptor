@@ -13,3 +13,7 @@ Currently this project is using:
 
   * [libsodium-net] - A secure cryptographic library
   * [protobuf-net] - Efficient binary serialization by Google
+
+
+[libsodium-net]:https://github.com/adamcaudill/libsodium-net
+[protobuf-net]:https://code.google.com/p/protobuf-net/
