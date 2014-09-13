@@ -8,7 +8,7 @@ namespace Tests
     public class CryptoStreamTests
     {
         /// <summary>
-        ///
+        /// EncryptFileWithStream and DecryptFileWithStream
         ///</summary>
         [Test]
         public void CryptoStreamTest()
@@ -20,19 +20,13 @@ namespace Tests
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
 
-            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, RAW_FILE, ENCRYPTED_FILE);
+            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, RAW_FILE, ENCRYPTED_FILE, false);
             StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, ENCRYPTED_FILE, DECRYPTED_FILE);
 
             if (File.Exists(DECRYPTED_FILE))
             {
-                //FIXME: test should check file checksum
-                FileInfo rawInfo = new FileInfo(RAW_FILE);
-                long s1 = rawInfo.Length;
-
-                FileInfo decryptedInfo = new FileInfo(DECRYPTED_FILE);
-                long s2 = decryptedInfo.Length;
-
-                Assert.AreEqual(s1, s2);
+                //get a SHA256 checksum to validate our work, this takes us currently ~100ms.
+                Assert.AreEqual(StreamCryptor.Helper.Utils.GetChecksum(RAW_FILE), StreamCryptor.Helper.Utils.GetChecksum(DECRYPTED_FILE));
             }
 
             //clear garbage 

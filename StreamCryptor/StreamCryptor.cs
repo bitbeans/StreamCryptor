@@ -5,6 +5,7 @@ using StreamCryptor.Model;
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace StreamCryptor
 {
@@ -14,12 +15,25 @@ namespace StreamCryptor
     /// </summary>
     public static class StreamCryptor
     {
+        //TODO: 
+        // - check filename length
+        // - mask filename (maybe change outputFile to outputFolder and add the DEFAULT_FILE_EXTENSION)
+        // - progress reporting 
+        // - overloaded versions for more than one file
+        // - version check (maybe implement protobuf versions)
+        // - more tests
         private const int CHUNK_LENGTH = 1048576; //~1MB
         private const int CHUNK_COUNT_START = 0;
+        private const int CHUNK_CHECKSUM_LENGTH = 64;
+        private const int MIN_CHUNK_NUMBER = 0;
         private const int NONCE_LENGTH = 24;
         private const int BASE_NONCE_LENGTH = 16;
         private const int CURRENT_VERSION = 1;
         private const int MIN_VERSION = 1;
+        private const int HEADER_CHECKSUM_LENGTH = 64;
+        //unused consts
+        private const int MAX_FILENAME_LENGTH = 256;
+        private const string DEFAULT_FILE_EXTENSION = ".encytepd";
 
         /// <summary>
         /// Generates an accumulated nonce.
@@ -30,10 +44,22 @@ namespace StreamCryptor
         /// <returns></returns>
         public static byte[] GetChunkNonce(byte[] baseNonce, int chunkNumber, bool isLastChunkInStream = false)
         {
-            //TODO: validate input
+            //validate the length of the baseNonce
+            if (baseNonce == null || baseNonce.Length != BASE_NONCE_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("baseNonce", (baseNonce == null) ? 0 : baseNonce.Length,
+                  string.Format("baseNonce must be {0} bytes in length.", BASE_NONCE_LENGTH));
+            }
+            //validate the chunkNumber
+            if (chunkNumber < 0)
+            {
+                throw new ArgumentOutOfRangeException("chunkNumber", string.Format("chunkNumber must be {0} or positive.", MIN_CHUNK_NUMBER));
+            }
+            //convert the integer to byte[8] array
             byte[] chunkNumberAsByte = Utils.IntegerToLittleEndian(chunkNumber);
+            //merge the base nonce with the chunk number
             byte[] concatNonce = ArrayHelpers.ConcatArrays(baseNonce, chunkNumberAsByte);
-            //set last part to 128
+            //set the last part to 128
             if (isLastChunkInStream)
                 concatNonce[23] |= 0x80;
 
@@ -46,9 +72,30 @@ namespace StreamCryptor
         /// <param name="keyPair">A KeyPair to encrypt the ephemeralKey.</param>
         /// <param name="inputFile">A raw file.</param>
         /// <param name="outputFile">There the encrypted file will be stored.</param>
-        public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFile)
+        /// <param name="maskFileName">Replaces the filename with some random name.</param>
+        public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFile, bool maskFileName = false)
         {
-            //TODO: validate input
+            //validate the keyPair
+            if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
+            {
+                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
+            }
+            //validate the inputFile
+            if (inputFile == null || inputFile.Length < 1)
+            {
+                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
+                  string.Format("inputFile must be greater {0} in length.", 0));
+            }
+            if (!File.Exists(inputFile))
+            {
+                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
+            }
+            //validate the outputFile
+            if (outputFile == null || outputFile.Length < 1)
+            {
+                throw new ArgumentOutOfRangeException("outputFile", (outputFile == null) ? 0 : outputFile.Length,
+                  string.Format("outputFile must be greater {0} in length.", 0));
+            }
             //go for the streams
             using (FileStream fileStreamEncrypted = File.OpenWrite(outputFile))
             {
@@ -56,27 +103,40 @@ namespace StreamCryptor
                 {
                     //prepare our file header
                     EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
-                    
                     //get some ephemeral key fot this file
                     byte[] ephemeralKey = SecretBox.GenerateKey();
                     //generate a nonce for the encrypted ephemeral key
                     byte[] nonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
+                    encryptedFileHeader.Nonce = nonce;
                     //encrypt the ephemeral key with our public box 
                     byte[] encryptedEphemeralKey = Sodium.PublicKeyBox.Create(ephemeralKey, nonce, keyPair.PrivateKey, keyPair.PublicKey);
-
                     long fileLength = fileStreamUnencrypted.Length;
+                    FileInfo inputFileInfo = new FileInfo(inputFile);
+                    //we start at chunk number 0
                     int chunkNumber = CHUNK_COUNT_START;
                     //set some things to the file header
                     encryptedFileHeader.UnencryptedFileLength = fileLength;
+                    //currently unsued
                     encryptedFileHeader.Version = CURRENT_VERSION;
-                    //a random base nonce, which will be filled up to 24 byte with every chunk
+                    //a random base nonce (16 byte), which will be filled up to 24 byte in every chunk
                     encryptedFileHeader.BaseNonce = SodiumCore.GetRandomBytes(BASE_NONCE_LENGTH);
-                    encryptedFileHeader.Nonce = nonce;
+                    //encryptedEphemeral
                     encryptedFileHeader.Key = encryptedEphemeralKey;
-                    encryptedFileHeader.Checksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, 64);
-                    //TODO: extend header class and don`t set garbage! :P
-                    //- baseNonce, file length, checksum, encrypted ephemeralKey, mac, maybe more data if the filename was encrypted ....
-
+                    //the checksum to validate our file header
+                    encryptedFileHeader.Checksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, HEADER_CHECKSUM_LENGTH);
+                    //mask the file name
+                    if (maskFileName)
+                    {
+                        //TODO: implement
+                        throw new NotImplementedException("bam!");
+                        encryptedFileHeader.IsFilenameEncrypted = true;
+                        encryptedFileHeader.Filename = Encoding.UTF8.GetBytes(inputFileInfo.Name);
+                    }
+                    else
+                    {
+                        encryptedFileHeader.Filename = Encoding.UTF8.GetBytes(inputFileInfo.Name);
+                        encryptedFileHeader.IsFilenameEncrypted = false;
+                    }
                     //write the file header
                     Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileHeader, PrefixStyle.Fixed32, 1);
                     //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
@@ -129,7 +189,7 @@ namespace StreamCryptor
                             //and also the length of it
                             encryptedFileChunk.ChunkLength = encryptedChunk.Length;
                             //generate a 64 byte checksum for this chunk
-                            encryptedFileChunk.ChunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedChunk, Utils.IntegerToLittleEndian(encryptedChunk.Length), chunkNonce), ephemeralKey, 64);
+                            encryptedFileChunk.ChunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedChunk, Utils.IntegerToLittleEndian(encryptedChunk.Length), chunkNonce), ephemeralKey, CHUNK_CHECKSUM_LENGTH);
                             //write encryptedFileChunk to the output stream
                             Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileChunk, PrefixStyle.Fixed32, 1);
                             //increment for the next chunk
@@ -148,7 +208,27 @@ namespace StreamCryptor
         /// <param name="outputFile">There the decrypted file will be stored.</param>
         public static void DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFile)
         {
-            //TODO: validate input
+            //validate the keyPair
+            if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
+            {
+                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
+            }
+            //validate the inputFile
+            if (inputFile == null || inputFile.Length < 1)
+            {
+                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
+                  string.Format("inputFile must be greater {0} in length.", 0));
+            }
+            if (!File.Exists(inputFile))
+            {
+                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
+            }
+            //validate the outputFile
+            if (outputFile == null || outputFile.Length < 1)
+            {
+                throw new ArgumentOutOfRangeException("outputFile", (outputFile == null) ? 0 : outputFile.Length,
+                  string.Format("outputFile must be greater {0} in length.", 0));
+            }
             using (FileStream fileStreamUnencrypted = File.OpenWrite(outputFile))
             {
                 using (FileStream fileStreamEncrypted = File.OpenRead(inputFile))
@@ -160,7 +240,13 @@ namespace StreamCryptor
 
                     //decrypt the ephemeral key with our public box 
                     byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.Nonce, keyPair.PublicKey, keyPair.PrivateKey);
-                    byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, 64);
+                    byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, HEADER_CHECKSUM_LENGTH);
+
+                    if (encryptedFileHeader.IsFilenameEncrypted)
+                    {
+                        //TODO: implement
+                        throw new NotImplementedException("bam!");
+                    }
                     //check file header
                     if ((encryptedFileHeader.Version >= MIN_VERSION) &&
                         (encryptedFileHeader.BaseNonce.Length == BASE_NONCE_LENGTH) &&
@@ -183,8 +269,7 @@ namespace StreamCryptor
                                 chunkNonce = GetChunkNonce(encryptedFileHeader.BaseNonce, chunkNumber, false);
                             }
                             //generate chunk checksum
-
-                            byte[] chunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileChunk.Chunk, Utils.IntegerToLittleEndian(encryptedFileChunk.Chunk.Length), chunkNonce), ephemeralKey, 64);
+                            byte[] chunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileChunk.Chunk, Utils.IntegerToLittleEndian(encryptedFileChunk.Chunk.Length), chunkNonce), ephemeralKey, CHUNK_CHECKSUM_LENGTH);
                             //check the current chunk checksum
                             if (chunkChecksum.SequenceEqual(encryptedFileChunk.ChunkChecksum))
                             {
@@ -193,14 +278,14 @@ namespace StreamCryptor
                             }
                             else
                             {
-                                throw new Exception("bad chunk");
+                                throw new BadFileChunkException("Wrong checksum, file could be damaged or manipulated!");
                             }
                             chunkNumber++;
                         }
                     }
                     else
                     {
-                        throw new Exception("bad file header");
+                        throw new BadFileHeaderException("Malformed file header: file could be damaged or manipulated!");
                     }
                 }
             }

@@ -51,6 +51,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Exception\BadFileChunkException.cs" />
+    <Compile Include="Exception\BadFileHeaderException.cs" />
     <Compile Include="Helper\ArrayHelpers.cs" />
     <Compile Include="Helper\Utils.cs" />
     <Compile Include="Model\EncryptedFileChunk.cs" />

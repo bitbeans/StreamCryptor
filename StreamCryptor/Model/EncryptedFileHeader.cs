@@ -17,5 +17,9 @@ namespace StreamCryptor.Model
         public byte[] Key { get; set; }
         [ProtoMember(6)]
         public byte[] Checksum { get; set; }
+        [ProtoMember(7)]
+        public byte[] Filename { get; set; }
+        [ProtoMember(8)]
+        public bool IsFilenameEncrypted { get; set; }
     }
 }
