@@ -1,3 +1,4 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/73fb5hecxx9xjyip)](https://ci.appveyor.com/project/bitbeans/streamcryptor)
 StreamCryptor
 =========
 
