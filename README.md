@@ -51,3 +51,6 @@ private const string DEFAULT_FILE_EXTENSION = ".encrypted";
 
 ## Help wanted
 See [#3](https://github.com/bitbeans/StreamCryptor/issues/3).
+
+## Why
+Inspired by [this](https://github.com/jedisct1/libsodium/issues/141) libsodium discussion and the [nacl-stream-js](https://github.com/dchest/nacl-stream-js) project.
