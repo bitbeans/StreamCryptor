@@ -27,11 +27,11 @@ All cryptographic operations are performed via [libsodium](https://github.com/je
 
 ### Methods
 
-`public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, bool maskFileName = false)`
+`public static string EncryptFileWithStream(KeyPair keyPair, string inputFile, bool maskFileName = false)` - Returns the name of the encrypted file.
 
-`public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool maskFileName = false)`
+`public static string EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool maskFileName = false)` - Returns the name of the encrypted file.
 
-`public static void DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder)`
+`public static string DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder)` - Returns the name of the decrypted file.
 
 ### And some fixed parameters
 ```

@@ -65,8 +65,9 @@ namespace StreamCryptor
         /// <param name="keyPair">A KeyPair to encrypt the ephemeralKey.</param>
         /// <param name="inputFile">The input file.</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
+        /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
-        public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, bool maskFileName = false)
+        public static string EncryptFileWithStream(KeyPair keyPair, string inputFile, bool maskFileName = false)
         {
             //validate the keyPair
             if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
@@ -91,7 +92,7 @@ namespace StreamCryptor
                 throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
             }
             //Call the main method
-            EncryptFileWithStream(keyPair, inputFile, inputFileInfo.DirectoryName, maskFileName);
+            return EncryptFileWithStream(keyPair, inputFile, inputFileInfo.DirectoryName, maskFileName);
         }
 
         /// <summary>
@@ -101,8 +102,11 @@ namespace StreamCryptor
         /// <param name="inputFile">The input file.</param>
         /// <param name="outputFolder">There the encrypted file will be stored.</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
-        public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool maskFileName = false)
+        /// <returns>The name of the encrypted file.</returns>
+        public static string EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool maskFileName = false)
         {
+            string outputFullPath = String.Empty;
+            string outputFile = String.Empty;
             //validate the keyPair
             if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
             {
@@ -120,7 +124,6 @@ namespace StreamCryptor
             }
             //retrieve file info
             FileInfo inputFileInfo = new FileInfo(inputFile);
-            string outputFullPath = String.Empty;
             if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
             {
                 throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
@@ -134,12 +137,14 @@ namespace StreamCryptor
             if (maskFileName)
             {
                 //store the output file with a masked file name and the DEFAULT_FILE_EXTENSION
-                outputFullPath = Path.Combine(outputFolder, Helper.Utils.GetRandomString(MASKED_FILENAME_LENGTH) + DEFAULT_FILE_EXTENSION);
+                outputFile = Helper.Utils.GetRandomString(MASKED_FILENAME_LENGTH) + DEFAULT_FILE_EXTENSION;
+                outputFullPath = Path.Combine(outputFolder, outputFile);
             }
             else
             {
                 //store the output file, just with the DEFAULT_FILE_EXTENSION
-                outputFullPath = Path.Combine(outputFolder, inputFileInfo.Name + DEFAULT_FILE_EXTENSION);
+                outputFile = inputFileInfo.Name + DEFAULT_FILE_EXTENSION;
+                outputFullPath = Path.Combine(outputFolder, outputFile);
             }
             //go for the streams
             using (FileStream fileStreamEncrypted = File.OpenWrite(outputFullPath))
@@ -175,7 +180,7 @@ namespace StreamCryptor
                     byte[] paddedFileName = Helper.Utils.StringToPaddedByteArray(inputFileInfo.Name, MAX_FILENAME_LENGTH);
                     encryptedFileHeader.Filename = SecretBox.Create(paddedFileName, fileNameNonce, ephemeralKey);
                     //write the file header
-                    Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileHeader, PrefixStyle.Fixed32, 1);
+                    Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileHeader, PrefixStyle.Fixed32);
                     //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
                     byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
                     int bytesRead;
@@ -228,13 +233,14 @@ namespace StreamCryptor
                             //generate a 64 byte checksum for this chunk
                             encryptedFileChunk.ChunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedChunk, Utils.IntegerToLittleEndian(encryptedChunk.Length), chunkNonce), ephemeralKey, CHUNK_CHECKSUM_LENGTH);
                             //write encryptedFileChunk to the output stream
-                            Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileChunk, PrefixStyle.Fixed32, 1);
+                            Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileChunk, PrefixStyle.Fixed32);
                             //increment for the next chunk
                             chunkNumber++;
                         }
                     } while (bytesRead != 0);
                 }
             }
+            return outputFile;
         }
 
         /// <summary>
@@ -243,8 +249,10 @@ namespace StreamCryptor
         /// <param name="keyPair">A KeyPair to decrypt the ephemeralKey.</param>
         /// <param name="inputFile">An encrypted file.</param>
         /// <param name="outputFolder">There the decrypted file will be stored.</param>
-        public static void DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder)
+        /// <returns>The fullpath to the decrypted file.</returns>
+        public static string DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder)
         {
+            string outputFile = String.Empty;
             //validate the keyPair
             if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
             {
@@ -269,7 +277,7 @@ namespace StreamCryptor
             {
                 //first read the file header
                 EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
-                encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Fixed32, 1);
+                encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Fixed32);
                 //decrypt the ephemeral key with our public box 
                 byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, keyPair.PublicKey, keyPair.PrivateKey);
                 byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, HEADER_CHECKSUM_LENGTH);
@@ -281,13 +289,13 @@ namespace StreamCryptor
                     //restore the original file name
                     byte[] encryptedPaddedFileName = encryptedFileHeader.Filename = SecretBox.Open(encryptedFileHeader.Filename, encryptedFileHeader.FilenameNonce, ephemeralKey); ;
                     //remove the padding
-                    string outputFile = Helper.Utils.PaddedByteArrayToString(encryptedPaddedFileName);
+                    outputFile = Helper.Utils.PaddedByteArrayToString(encryptedPaddedFileName);
                     using (FileStream fileStreamUnencrypted = File.OpenWrite(Path.Combine(outputFolder, outputFile)))
                     {
                         int chunkNumber = CHUNK_COUNT_START;
                         //start reading the chunks
                         EncryptedFileChunk encryptedFileChunk = new EncryptedFileChunk();
-                        while ((encryptedFileChunk = Serializer.DeserializeWithLengthPrefix<EncryptedFileChunk>(fileStreamEncrypted, PrefixStyle.Fixed32, 1)) != null)
+                        while ((encryptedFileChunk = Serializer.DeserializeWithLengthPrefix<EncryptedFileChunk>(fileStreamEncrypted, PrefixStyle.Fixed32)) != null)
                         {
                             byte[] chunkNonce = new byte[NONCE_LENGTH];
                             //check if this is the last chunk
@@ -322,6 +330,7 @@ namespace StreamCryptor
                     throw new BadFileHeaderException("Malformed file header: file could be damaged or manipulated!");
                 }
             }
+            return outputFile;
         }
     }
 }

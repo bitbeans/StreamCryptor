@@ -109,8 +109,7 @@ namespace StreamCryptor.Helper
             {
                 throw new ArgumentNullException("paddedByteArray can not be null");
             }
-            string x = Encoding.UTF8.GetString(paddedByteArray);
-            return x.TrimEnd('\0');
+            return Encoding.UTF8.GetString(paddedByteArray).TrimEnd('\0');
         }
     }
 }
