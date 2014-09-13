@@ -6,7 +6,7 @@ All cryptographic operations are performed via [libsodium](https://github.com/je
 
 ## Status
 
-Project is under development!
+> Project is under development!
 
 :facepunch: Don`t use this code in a live project!
 
@@ -50,10 +50,10 @@ private const string DEFAULT_FILE_EXTENSION = ".encrypted";
 ```
 
 ## Help wanted
-See bitbeans/StreamCryptor#3
+See https://github.com/bitbeans/StreamCryptor/issues/3
 
 ## Why
-Inspired by jedisct1/libsodium.js#141 and the [nacl-stream-js](https://github.com/dchest/nacl-stream-js) project.
+Inspired by https://github.com/jedisct1/libsodium/issues/141 and the [nacl-stream-js](https://github.com/dchest/nacl-stream-js) project.
 
 ## License
 [MIT](https://en.wikipedia.org/wiki/MIT_License)
