@@ -15,13 +15,6 @@ namespace StreamCryptor
     /// </summary>
     public static class StreamCryptor
     {
-        //TODO: 
-        // - check filename length
-        // - mask filename (maybe change outputFile to outputFolder and add the DEFAULT_FILE_EXTENSION)
-        // - progress reporting 
-        // - overloaded versions for more than one file
-        // - version check (maybe implement protobuf versions)
-        // - more tests
         private const int CHUNK_LENGTH = 1048576; //~1MB
         private const int CHUNK_COUNT_START = 0;
         private const int CHUNK_CHECKSUM_LENGTH = 64;
@@ -31,9 +24,9 @@ namespace StreamCryptor
         private const int CURRENT_VERSION = 1;
         private const int MIN_VERSION = 1;
         private const int HEADER_CHECKSUM_LENGTH = 64;
-        //unused consts
         private const int MAX_FILENAME_LENGTH = 256;
-        private const string DEFAULT_FILE_EXTENSION = ".encytepd";
+        private const int MASKED_FILENAME_LENGTH = 11;
+        private const string DEFAULT_FILE_EXTENSION = ".encrypted";
 
         /// <summary>
         /// Generates an accumulated nonce.
@@ -70,10 +63,10 @@ namespace StreamCryptor
         /// Encrypts a file with libsodium and protobuf-net.
         /// </summary>
         /// <param name="keyPair">A KeyPair to encrypt the ephemeralKey.</param>
-        /// <param name="inputFile">A raw file.</param>
-        /// <param name="outputFile">There the encrypted file will be stored.</param>
+        /// <param name="inputFile">The input file.</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
-        public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFile, bool maskFileName = false)
+        /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
+        public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, bool maskFileName = false)
         {
             //validate the keyPair
             if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
@@ -90,14 +83,66 @@ namespace StreamCryptor
             {
                 throw new FileNotFoundException("inputFile", "inputFile could not be found.");
             }
-            //validate the outputFile
-            if (outputFile == null || outputFile.Length < 1)
+            //retrieve file info
+            FileInfo inputFileInfo = new FileInfo(inputFile);
+            string outputFile = String.Empty;
+            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
             {
-                throw new ArgumentOutOfRangeException("outputFile", (outputFile == null) ? 0 : outputFile.Length,
-                  string.Format("outputFile must be greater {0} in length.", 0));
+                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
+            }
+            //Call the main method
+            EncryptFileWithStream(keyPair, inputFile, inputFileInfo.DirectoryName, maskFileName);
+        }
+
+        /// <summary>
+        /// Encrypts a file with libsodium and protobuf-net.
+        /// </summary>
+        /// <param name="keyPair">A KeyPair to encrypt the ephemeralKey.</param>
+        /// <param name="inputFile">The input file.</param>
+        /// <param name="outputFolder">There the encrypted file will be stored.</param>
+        /// <param name="maskFileName">Replaces the filename with some random name.</param>
+        public static void EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool maskFileName = false)
+        {
+            //validate the keyPair
+            if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
+            {
+                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
+            }
+            //validate the inputFile
+            if (inputFile == null || inputFile.Length < 1)
+            {
+                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
+                  string.Format("inputFile must be greater {0} in length.", 0));
+            }
+            if (!File.Exists(inputFile))
+            {
+                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
+            }
+            //retrieve file info
+            FileInfo inputFileInfo = new FileInfo(inputFile);
+            string outputFullPath = String.Empty;
+            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
+            }
+            //validate the outputFolder
+            if (outputFolder == null || !Directory.Exists(outputFolder))
+            {
+                throw new DirectoryNotFoundException("outputFolder must exist");
+            }
+            //generate the name of the output file
+            if (maskFileName)
+            {
+                //store the output file with a masked file name and the DEFAULT_FILE_EXTENSION
+                outputFullPath = Path.Combine(outputFolder, Helper.Utils.GetRandomString(MASKED_FILENAME_LENGTH) + DEFAULT_FILE_EXTENSION);
+            }
+            else
+            {
+                //store the output file, just with the DEFAULT_FILE_EXTENSION
+                outputFullPath = Path.Combine(outputFolder, inputFileInfo.Name + DEFAULT_FILE_EXTENSION);
             }
             //go for the streams
-            using (FileStream fileStreamEncrypted = File.OpenWrite(outputFile))
+            using (FileStream fileStreamEncrypted = File.OpenWrite(outputFullPath))
             {
                 using (FileStream fileStreamUnencrypted = File.OpenRead(inputFile))
                 {
@@ -106,12 +151,11 @@ namespace StreamCryptor
                     //get some ephemeral key fot this file
                     byte[] ephemeralKey = SecretBox.GenerateKey();
                     //generate a nonce for the encrypted ephemeral key
-                    byte[] nonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
-                    encryptedFileHeader.Nonce = nonce;
+                    byte[] ephemeralNonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
+                    encryptedFileHeader.EphemeralNonce = ephemeralNonce;
                     //encrypt the ephemeral key with our public box 
-                    byte[] encryptedEphemeralKey = Sodium.PublicKeyBox.Create(ephemeralKey, nonce, keyPair.PrivateKey, keyPair.PublicKey);
+                    byte[] encryptedEphemeralKey = Sodium.PublicKeyBox.Create(ephemeralKey, ephemeralNonce, keyPair.PrivateKey, keyPair.PublicKey);
                     long fileLength = fileStreamUnencrypted.Length;
-                    FileInfo inputFileInfo = new FileInfo(inputFile);
                     //we start at chunk number 0
                     int chunkNumber = CHUNK_COUNT_START;
                     //set some things to the file header
@@ -124,19 +168,12 @@ namespace StreamCryptor
                     encryptedFileHeader.Key = encryptedEphemeralKey;
                     //the checksum to validate our file header
                     encryptedFileHeader.Checksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, HEADER_CHECKSUM_LENGTH);
-                    //mask the file name
-                    if (maskFileName)
-                    {
-                        //TODO: implement
-                        throw new NotImplementedException("bam!");
-                        encryptedFileHeader.IsFilenameEncrypted = true;
-                        encryptedFileHeader.Filename = Encoding.UTF8.GetBytes(inputFileInfo.Name);
-                    }
-                    else
-                    {
-                        encryptedFileHeader.Filename = Encoding.UTF8.GetBytes(inputFileInfo.Name);
-                        encryptedFileHeader.IsFilenameEncrypted = false;
-                    }
+                    //encrypt the file name in the header
+                    byte[] fileNameNonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
+                    encryptedFileHeader.FilenameNonce = fileNameNonce;
+                    //get the filename to 256 bytes
+                    byte[] paddedFileName = Helper.Utils.StringToPaddedByteArray(inputFileInfo.Name, MAX_FILENAME_LENGTH);
+                    encryptedFileHeader.Filename = SecretBox.Create(paddedFileName, fileNameNonce, ephemeralKey);
                     //write the file header
                     Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileHeader, PrefixStyle.Fixed32, 1);
                     //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
@@ -205,8 +242,8 @@ namespace StreamCryptor
         /// </summary>
         /// <param name="keyPair">A KeyPair to decrypt the ephemeralKey.</param>
         /// <param name="inputFile">An encrypted file.</param>
-        /// <param name="outputFile">There the decrypted file will be stored.</param>
-        public static void DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFile)
+        /// <param name="outputFolder">There the decrypted file will be stored.</param>
+        public static void DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder)
         {
             //validate the keyPair
             if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
@@ -223,35 +260,31 @@ namespace StreamCryptor
             {
                 throw new FileNotFoundException("inputFile", "inputFile could not be found.");
             }
-            //validate the outputFile
-            if (outputFile == null || outputFile.Length < 1)
+            //validate the outputFolder
+            if (outputFolder == null || !Directory.Exists(outputFolder))
             {
-                throw new ArgumentOutOfRangeException("outputFile", (outputFile == null) ? 0 : outputFile.Length,
-                  string.Format("outputFile must be greater {0} in length.", 0));
+                throw new DirectoryNotFoundException("outputFolder must exist");
             }
-            using (FileStream fileStreamUnencrypted = File.OpenWrite(outputFile))
+            using (FileStream fileStreamEncrypted = File.OpenRead(inputFile))
             {
-                using (FileStream fileStreamEncrypted = File.OpenRead(inputFile))
+                //first read the file header
+                EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
+                encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Fixed32, 1);
+                //decrypt the ephemeral key with our public box 
+                byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, keyPair.PublicKey, keyPair.PrivateKey);
+                byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, HEADER_CHECKSUM_LENGTH);
+                //check file header
+                if ((encryptedFileHeader.Version >= MIN_VERSION) &&
+                    (encryptedFileHeader.BaseNonce.Length == BASE_NONCE_LENGTH) &&
+                    (encryptedFileHeader.Checksum.SequenceEqual(headerChecksum)))
                 {
-                    int chunkNumber = CHUNK_COUNT_START;
-                    //first read the file header
-                    EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
-                    encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Fixed32, 1);
-
-                    //decrypt the ephemeral key with our public box 
-                    byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.Nonce, keyPair.PublicKey, keyPair.PrivateKey);
-                    byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key), ephemeralKey, HEADER_CHECKSUM_LENGTH);
-
-                    if (encryptedFileHeader.IsFilenameEncrypted)
+                    //restore the original file name
+                    byte[] encryptedPaddedFileName = encryptedFileHeader.Filename = SecretBox.Open(encryptedFileHeader.Filename, encryptedFileHeader.FilenameNonce, ephemeralKey); ;
+                    //remove the padding
+                    string outputFile = Helper.Utils.PaddedByteArrayToString(encryptedPaddedFileName);
+                    using (FileStream fileStreamUnencrypted = File.OpenWrite(Path.Combine(outputFolder, outputFile)))
                     {
-                        //TODO: implement
-                        throw new NotImplementedException("bam!");
-                    }
-                    //check file header
-                    if ((encryptedFileHeader.Version >= MIN_VERSION) &&
-                        (encryptedFileHeader.BaseNonce.Length == BASE_NONCE_LENGTH) &&
-                        (encryptedFileHeader.Checksum.SequenceEqual(headerChecksum))) 
-                    {
+                        int chunkNumber = CHUNK_COUNT_START;
                         //start reading the chunks
                         EncryptedFileChunk encryptedFileChunk = new EncryptedFileChunk();
                         while ((encryptedFileChunk = Serializer.DeserializeWithLengthPrefix<EncryptedFileChunk>(fileStreamEncrypted, PrefixStyle.Fixed32, 1)) != null)
@@ -283,10 +316,10 @@ namespace StreamCryptor
                             chunkNumber++;
                         }
                     }
-                    else
-                    {
-                        throw new BadFileHeaderException("Malformed file header: file could be damaged or manipulated!");
-                    }
+                }
+                else
+                {
+                    throw new BadFileHeaderException("Malformed file header: file could be damaged or manipulated!");
                 }
             }
         }

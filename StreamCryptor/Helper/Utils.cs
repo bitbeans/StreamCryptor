@@ -78,5 +78,39 @@ namespace StreamCryptor.Helper
             for (int i = 0; i < length; i++) sb.Append(array[GetRandomNumber(53)]);
             return sb.ToString();
         }
+
+        /// <summary>
+        /// Converts a string into a byte array and fill it up to given length.
+        /// </summary>
+        /// <param name="str">The input string.</param>
+        /// <param name="paddingLength">The padding length.</param>
+        /// <returns>A byte[256] array.</returns>
+        public static byte[] StringToPaddedByteArray(string str, int paddingLength)
+        {
+            if (str.Length > 256)
+            {
+                throw new ArgumentOutOfRangeException("str must be <= 256 chars");
+            }
+            if (paddingLength > 256)
+            {
+                throw new ArgumentOutOfRangeException("paddingLength must be <= 256");
+            }
+            return Encoding.UTF8.GetBytes(str.PadRight(paddingLength, '\0'));
+        }
+
+        /// <summary>
+        /// Converts a padded byte array to a unpadded string.
+        /// </summary>
+        /// <param name="paddedByteArray">The padded byte array.</param>
+        /// <returns>An unpadded string.</returns>
+        public static string PaddedByteArrayToString(byte[] paddedByteArray)
+        {
+            if (paddedByteArray == null)
+            {
+                throw new ArgumentNullException("paddedByteArray can not be null");
+            }
+            string x = Encoding.UTF8.GetString(paddedByteArray);
+            return x.TrimEnd('\0');
+        }
     }
 }
