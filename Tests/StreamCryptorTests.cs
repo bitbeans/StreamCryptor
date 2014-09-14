@@ -15,7 +15,7 @@ namespace Tests
         public void StreamCryptorUsualTest()
         {
             const string RAW_FILE = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
-            const string OUTPUT_DIRECTORY = "Testfiles";
+            const string OUTPUT_DIRECTORY = "Testfiles\\decrypted";
             string PRIVATE_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
