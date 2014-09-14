@@ -48,5 +48,11 @@ namespace StreamCryptor.Model
         /// </summary>
         [ProtoMember(8)]
         public byte[] FilenameNonce { get; set; }
+        /// <summary>
+        /// The 32 byte public key of the sender.
+        /// </summary>
+        [ProtoMember(9)]
+        public byte[] SenderPublicKey { get; set; }
+        
     }
 }

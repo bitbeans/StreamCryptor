@@ -6,7 +6,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
-using System.Text;
 
 namespace StreamCryptor
 {
@@ -16,17 +15,18 @@ namespace StreamCryptor
     /// </summary>
     public static class StreamCryptor
     {
-        private const int CHUNK_LENGTH = 1048576; //~1MB
-        private const int CHUNK_COUNT_START = 0;
-        private const int CHUNK_CHECKSUM_LENGTH = 64;
-        private const int MIN_CHUNK_NUMBER = 0;
-        private const int NONCE_LENGTH = 24;
-        private const int BASE_NONCE_LENGTH = 16;
         private const int CURRENT_VERSION = 1;
         private const int MIN_VERSION = 1;
+        private const int CHUNK_LENGTH = 1048576; //~1MB
+        private const int CHUNK_COUNT_START = 0;
+        private const int CHUNK_MIN_NUMBER = 0;
+        private const int CHUNK_BASE_NONCE_LENGTH = 16;
+        private const int CHUNK_CHECKSUM_LENGTH = 64;
         private const int HEADER_CHECKSUM_LENGTH = 64;
         private const int FOOTER_CHECKSUM_LENGTH = 64;
+        private const int NONCE_LENGTH = 24;
         private const int MAX_FILENAME_LENGTH = 256;
+        private const int ASYNC_KEY_LENGTH = 32;
         private const int MASKED_FILENAME_LENGTH = 11;
         private const string DEFAULT_FILE_EXTENSION = ".encrypted";
         private const string TEMP_FILE_EXTENSION = ".t";
@@ -37,19 +37,19 @@ namespace StreamCryptor
         /// <param name="baseNonce">16 byte nonce.</param>
         /// <param name="chunkNumber">Number to accumulate.</param>
         /// <param name="isLastChunkInStream">Idicates if this chunk is the last in the stream.</param>
-        /// <returns></returns>
-        public static byte[] GetChunkNonce(byte[] baseNonce, int chunkNumber, bool isLastChunkInStream = false)
+        /// <returns>An accumulated nonce.</returns>
+        private static byte[] GetChunkNonce(byte[] baseNonce, int chunkNumber, bool isLastChunkInStream = false)
         {
             //validate the length of the baseNonce
-            if (baseNonce == null || baseNonce.Length != BASE_NONCE_LENGTH)
+            if (baseNonce == null || baseNonce.Length != CHUNK_BASE_NONCE_LENGTH)
             {
                 throw new ArgumentOutOfRangeException("baseNonce", (baseNonce == null) ? 0 : baseNonce.Length,
-                  string.Format("baseNonce must be {0} bytes in length.", BASE_NONCE_LENGTH));
+                  string.Format("baseNonce must be {0} bytes in length.", CHUNK_BASE_NONCE_LENGTH));
             }
             //validate the chunkNumber
             if (chunkNumber < 0)
             {
-                throw new ArgumentOutOfRangeException("chunkNumber", string.Format("chunkNumber must be {0} or positive.", MIN_CHUNK_NUMBER));
+                throw new ArgumentOutOfRangeException("chunkNumber", string.Format("chunkNumber must be {0} or positive.", CHUNK_MIN_NUMBER));
             }
             //convert the integer to byte[8] array
             byte[] chunkNumberAsByte = Utils.IntegerToLittleEndian(chunkNumber);
@@ -63,19 +63,19 @@ namespace StreamCryptor
         }
 
         /// <summary>
-        /// Encrypts a file with libsodium and protobuf-net.
+        /// (Self)Encrypts a file with libsodium and protobuf-net.
         /// </summary>
-        /// <param name="keyPair">A KeyPair to encrypt the ephemeralKey.</param>
+        /// <param name="senderKeyPair">The senders keypair.</param>
         /// <param name="inputFile">The input file.</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
-        public static string EncryptFileWithStream(KeyPair keyPair, string inputFile, bool maskFileName = false)
+        public static string EncryptFileWithStream(KeyPair senderKeyPair, string inputFile, string outputFolder = null, bool maskFileName = false)
         {
-            //validate the keyPair
-            if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
+            //validate the senderPrivateKey
+            if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
             {
-                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
+                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
             }
             //validate the inputFile
             if (inputFile == null || inputFile.Length < 1)
@@ -89,31 +89,83 @@ namespace StreamCryptor
             }
             //retrieve file info
             FileInfo inputFileInfo = new FileInfo(inputFile);
-            string outputFile = String.Empty;
             if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
             {
                 throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
             }
             //Call the main method
-            return EncryptFileWithStream(keyPair, inputFile, inputFileInfo.DirectoryName, maskFileName);
+            return EncryptFileWithStream(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, outputFolder, maskFileName);
         }
 
         /// <summary>
         /// Encrypts a file with libsodium and protobuf-net.
         /// </summary>
-        /// <param name="keyPair">A KeyPair to encrypt the ephemeralKey.</param>
+        /// <param name="senderKeyPair">The senders keypair.</param>
+        /// <param name="recipientPublicKey">A 32 byte public key.</param>
         /// <param name="inputFile">The input file.</param>
-        /// <param name="outputFolder">There the encrypted file will be stored.</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
-        public static string EncryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool maskFileName = false)
+        /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
+        public static string EncryptFileWithStream(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, string outputFolder = null, bool maskFileName = false)
+        {
+            //validate the senderPrivateKey
+            if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
+            }
+            //validate the recipientPublicKey
+            if (recipientPublicKey == null || recipientPublicKey.Length != ASYNC_KEY_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("recipientPublicKey", "invalid recipientPublicKey");
+            }
+            //validate the inputFile
+            if (inputFile == null || inputFile.Length < 1)
+            {
+                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
+                  string.Format("inputFile must be greater {0} in length.", 0));
+            }
+            if (!File.Exists(inputFile))
+            {
+                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
+            }
+            //retrieve file info
+            FileInfo inputFileInfo = new FileInfo(inputFile);
+            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
+            }
+            //Call the main method
+            return EncryptFileWithStream(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, outputFolder, maskFileName);
+        }
+
+        /// <summary>
+        /// Encrypts a file with libsodium and protobuf-net.
+        /// </summary>
+        /// <param name="senderPrivateKey">A 32 byte private key.</param>
+        /// <param name="senderPublicKey">A 32 byte public key.</param>
+        /// <param name="recipientPublicKey">A 32 byte public key.</param>
+        /// <param name="inputFile">The input file.</param>
+        /// <param name="outputFolder">There the encrypted file will be stored, if this is null the input directory is used.</param>
+        /// <param name="maskFileName">Replaces the filename with some random name.</param>
+        /// <returns>The name of the encrypted file.</returns>
+        public static string EncryptFileWithStream(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, string outputFolder = null, bool maskFileName = false)
         {
             string outputFullPath = String.Empty;
             string outputFile = String.Empty;
-            //validate the keyPair
-            if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
+            //validate the senderPrivateKey
+            if (senderPrivateKey == null || senderPrivateKey.Length != ASYNC_KEY_LENGTH)
             {
-                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
+                throw new ArgumentOutOfRangeException("senderPrivateKey", "invalid senderPrivateKey");
+            }
+            //validate the senderPublicKey
+            if (senderPublicKey == null || senderPublicKey.Length != ASYNC_KEY_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("senderPublicKey", "invalid senderPublicKey");
+            }
+            //validate the recipientPublicKey
+            if (recipientPublicKey == null || recipientPublicKey.Length != ASYNC_KEY_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("recipientPublicKey", "invalid recipientPublicKey");
             }
             //validate the inputFile
             if (inputFile == null || inputFile.Length < 1)
@@ -132,9 +184,17 @@ namespace StreamCryptor
                 throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
             }
             //validate the outputFolder
-            if (outputFolder == null || !Directory.Exists(outputFolder))
+            if (outputFolder == null)
             {
-                throw new DirectoryNotFoundException("outputFolder must exist");
+                //use the same directory as inputFile
+                outputFolder = inputFileInfo.DirectoryName;
+            }
+            else
+            {
+                if (!Directory.Exists(outputFolder))
+                {
+                    throw new DirectoryNotFoundException("outputFolder could not be found.");
+                }
             }
             //generate the name of the output file
             if (maskFileName)
@@ -162,14 +222,16 @@ namespace StreamCryptor
                     byte[] ephemeralNonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
                     encryptedFileHeader.EphemeralNonce = ephemeralNonce;
                     //encrypt the ephemeral key with our public box 
-                    byte[] encryptedEphemeralKey = Sodium.PublicKeyBox.Create(ephemeralKey, ephemeralNonce, keyPair.PrivateKey, keyPair.PublicKey);
+                    byte[] encryptedEphemeralKey = Sodium.PublicKeyBox.Create(ephemeralKey, ephemeralNonce, senderPrivateKey, recipientPublicKey);
                     long fileLength = fileStreamUnencrypted.Length;
                     //set some things to the file header
                     encryptedFileHeader.UnencryptedFileLength = fileLength;
+                    //set the senders public key to the header, to guarantee the recipient can decrypt it
+                    encryptedFileHeader.SenderPublicKey = senderPublicKey;
                     //currently unsued
                     encryptedFileHeader.Version = CURRENT_VERSION;
                     //a random base nonce (16 byte), which will be filled up to 24 byte in every chunk
-                    encryptedFileHeader.BaseNonce = SodiumCore.GetRandomBytes(BASE_NONCE_LENGTH);
+                    encryptedFileHeader.BaseNonce = SodiumCore.GetRandomBytes(CHUNK_BASE_NONCE_LENGTH);
                     //encryptedEphemeral
                     encryptedFileHeader.Key = encryptedEphemeralKey;
                     //the checksum to validate our file header
@@ -267,12 +329,45 @@ namespace StreamCryptor
         /// <summary>
         /// Decrypts a file with libsodium and protobuf-net.
         /// </summary>
-        /// <param name="keyPair">A KeyPair to decrypt the ephemeralKey.</param>
+        /// <param name="keyPair">The KeyPair to decrypt the ephemeralKey.</param>
         /// <param name="inputFile">An encrypted file.</param>
         /// <param name="outputFolder">There the decrypted file will be stored.</param>
         /// <param name="overWrite">Overwrite the output file if it exist.</param>
         /// <returns>The fullpath to the decrypted file.</returns>
         public static string DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool overWrite = false)
+        {
+            //validate the keyPair
+            if (keyPair == null || keyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || keyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            {
+                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
+            }
+            //validate the inputFile
+            if (inputFile == null || inputFile.Length < 1)
+            {
+                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
+                    string.Format("inputFile must be greater {0} in length.", 0));
+            }
+            if (!File.Exists(inputFile))
+            {
+                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
+            }
+            //validate the outputFolder
+            if (outputFolder == null || !Directory.Exists(outputFolder))
+            {
+                throw new DirectoryNotFoundException("outputFolder must exist");
+            }
+            return DecryptFileWithStream(keyPair.PrivateKey, inputFile, outputFolder, overWrite);
+        }
+
+        /// <summary>
+        /// Decrypts a file with libsodium and protobuf-net.
+        /// </summary>
+        /// <param name="recipientPrivateKey">A 32 byte private key.</param>
+        /// <param name="inputFile">An encrypted file.</param>
+        /// <param name="outputFolder">There the decrypted file will be stored.</param>
+        /// <param name="overWrite">Overwrite the output file if it exist.</param>
+        /// <returns>The fullpath to the decrypted file.</returns>
+        public static string DecryptFileWithStream(byte[] recipientPrivateKey, string inputFile, string outputFolder, bool overWrite = false)
         {
             string outputFile = String.Empty;
             string outputFullPath = String.Empty;
@@ -281,10 +376,10 @@ namespace StreamCryptor
             string tmpFullPath = String.Empty;
             try
             {
-                //validate the keyPair
-                if (keyPair == null || keyPair.PrivateKey.Length != 32 || keyPair.PublicKey.Length != 32)
+                //validate the recipientPrivateKey
+                if (recipientPrivateKey == null || recipientPrivateKey.Length != ASYNC_KEY_LENGTH)
                 {
-                    throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
+                    throw new ArgumentOutOfRangeException("recipientPrivateKey", "invalid recipientPrivateKey");
                 }
                 //validate the inputFile
                 if (inputFile == null || inputFile.Length < 1)
@@ -311,11 +406,11 @@ namespace StreamCryptor
                     EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
                     encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Base128, 1);
                     //decrypt the ephemeral key with our public box 
-                    byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, keyPair.PublicKey, keyPair.PrivateKey);
+                    byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, encryptedFileHeader.SenderPublicKey, recipientPrivateKey);
                     byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key, BitConverter.GetBytes(encryptedFileHeader.UnencryptedFileLength)), ephemeralKey, HEADER_CHECKSUM_LENGTH);
                     //check file header
                     if ((encryptedFileHeader.Version >= MIN_VERSION) &&
-                        (encryptedFileHeader.BaseNonce.Length == BASE_NONCE_LENGTH) &&
+                        (encryptedFileHeader.BaseNonce.Length == CHUNK_BASE_NONCE_LENGTH) &&
                         (encryptedFileHeader.HeaderChecksum.SequenceEqual(headerChecksum)))
                     {
                         long overallChunkLength = 0;

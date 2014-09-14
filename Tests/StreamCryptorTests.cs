@@ -20,7 +20,7 @@ namespace Tests
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
             Console.Write("Encrypting testfile . . .\n");
-            string encryptedFile = StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, RAW_FILE, OUTPUT_DIRECTORY, true);
+            string encryptedFile = StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, Utilities.HexToBinary(PUBLIC_KEY), RAW_FILE, OUTPUT_DIRECTORY, true);
             Console.Write("Decrypting testfile . . .\n");
             string decryptedFile = StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), OUTPUT_DIRECTORY);
             Console.Write("Get checksum of testfiles . . .\n");
@@ -50,7 +50,7 @@ namespace Tests
             fs.WriteByte(0);
             fs.Close();
             Console.Write("Encrypting testfile . . .\n");
-            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, false);
+            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, null, false);
             Console.Write("Decrypting testfile . . .\n");
             StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, TESTFILE_ENCRYPTED, TESTFILE_DECRYPTED_OUTPUT_DIRECTORY);
             Console.Write("Get checksum of testfiles . . .\n");
@@ -84,32 +84,32 @@ namespace Tests
             fs.WriteByte(0);
             fs.Close();
             testTimer.Stop();
-            int elapsedSeconds = testTimer.Elapsed.Milliseconds;
-            Console.Write(string.Format("Time to generate testfile: {0} ms\n", elapsedSeconds));
+            int elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to generate testfile: {0} s\n", elapsedSeconds));
             testTimer.Reset();
             //encrypting
             testTimer.Start();
             Console.Write("Encrypting testfile . . .\n");
-            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, false);
+            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, null, false);
             testTimer.Stop();
-            elapsedSeconds = testTimer.Elapsed.Milliseconds;
-            Console.Write(string.Format("Time to encrypt testfile: {0} ms\n", elapsedSeconds));
+            elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to encrypt testfile: {0} s\n", elapsedSeconds));
             testTimer.Reset();
             //decrypting
             testTimer.Start();
             Console.Write("Decrypting testfile . . .\n");
             StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, TESTFILE_ENCRYPTED, TESTFILE_DECRYPTED_OUTPUT_DIRECTORY);
             testTimer.Stop();
-            elapsedSeconds = testTimer.Elapsed.Milliseconds;
-            Console.Write(string.Format("Time to decrypt testfile: {0} ms\n", elapsedSeconds));
+            elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to decrypt testfile: {0} s\n", elapsedSeconds));
             testTimer.Reset();
             //checksum
             testTimer.Start();
             Console.Write("Get checksum of testfiles . . .\n");
             Assert.AreEqual(StreamCryptor.Helper.Utils.GetChecksum(TESTFILE_RAW), StreamCryptor.Helper.Utils.GetChecksum(TESTFILE_DECRYPTED_FILE));
             testTimer.Stop();
-            elapsedSeconds = testTimer.Elapsed.Milliseconds;
-            Console.Write(string.Format("Time to generate testfile checksums: {0} ms\n", elapsedSeconds));
+            elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to generate testfile checksums: {0} s\n", elapsedSeconds));
             testTimer.Reset();
             //clear garbage 
             File.Delete(TESTFILE_RAW);
