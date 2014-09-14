@@ -52,10 +52,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Exception\BadFileChunkException.cs" />
+    <Compile Include="Exception\BadFileFooterException.cs" />
+    <Compile Include="Exception\BadLastFileChunkException.cs" />
     <Compile Include="Exception\BadFileHeaderException.cs" />
     <Compile Include="Helper\ArrayHelpers.cs" />
     <Compile Include="Helper\Utils.cs" />
     <Compile Include="Model\EncryptedFileChunk.cs" />
+    <Compile Include="Model\EncryptedFileFooter.cs" />
     <Compile Include="Model\EncryptedFileHeader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamCryptor.cs" />

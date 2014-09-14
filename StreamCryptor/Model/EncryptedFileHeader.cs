@@ -37,7 +37,7 @@ namespace StreamCryptor.Model
         /// The header checksum to validate this header.
         /// </summary>
         [ProtoMember(6)]
-        public byte[] Checksum { get; set; }
+        public byte[] HeaderChecksum { get; set; }
         /// <summary>
         /// Encrypted original filename.
         /// </summary>
