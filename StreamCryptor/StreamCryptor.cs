@@ -28,8 +28,8 @@ namespace StreamCryptor
         private const int MAX_FILENAME_LENGTH = 256;
         private const int ASYNC_KEY_LENGTH = 32;
         private const int MASKED_FILENAME_LENGTH = 11;
-        private const string DEFAULT_FILE_EXTENSION = ".encrypted";
-        private const string TEMP_FILE_EXTENSION = ".t";
+        private const string DEFAULT_FILE_EXTENSION = ".sccef"; //StreamCryptor Chunked Encrypted File
+        private const string TEMP_FILE_EXTENSION = ".tmp";
 
         /// <summary>
         /// Generates an accumulated nonce.
@@ -67,10 +67,11 @@ namespace StreamCryptor
         /// </summary>
         /// <param name="senderKeyPair">The senders keypair.</param>
         /// <param name="inputFile">The input file.</param>
+        /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
-        public static string EncryptFileWithStream(KeyPair senderKeyPair, string inputFile, string outputFolder = null, bool maskFileName = false)
+        public static string EncryptFileWithStream(KeyPair senderKeyPair, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
             //validate the senderPrivateKey
             if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
@@ -93,8 +94,12 @@ namespace StreamCryptor
             {
                 throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
             }
+            //validate the file extension
+            if (!fileExtension[0].Equals('.')) {
+                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+            }
             //Call the main method
-            return EncryptFileWithStream(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, outputFolder, maskFileName);
+            return EncryptFileWithStream(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, outputFolder, fileExtension, maskFileName);
         }
 
         /// <summary>
@@ -103,10 +108,11 @@ namespace StreamCryptor
         /// <param name="senderKeyPair">The senders keypair.</param>
         /// <param name="recipientPublicKey">A 32 byte public key.</param>
         /// <param name="inputFile">The input file.</param>
+        /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
-        public static string EncryptFileWithStream(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, string outputFolder = null, bool maskFileName = false)
+        public static string EncryptFileWithStream(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
             //validate the senderPrivateKey
             if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
@@ -134,8 +140,13 @@ namespace StreamCryptor
             {
                 throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
             }
+            //validate the file extension
+            if (!fileExtension[0].Equals('.'))
+            {
+                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+            }
             //Call the main method
-            return EncryptFileWithStream(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, outputFolder, maskFileName);
+            return EncryptFileWithStream(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, outputFolder, fileExtension, maskFileName);
         }
 
         /// <summary>
@@ -146,9 +157,10 @@ namespace StreamCryptor
         /// <param name="recipientPublicKey">A 32 byte public key.</param>
         /// <param name="inputFile">The input file.</param>
         /// <param name="outputFolder">There the encrypted file will be stored, if this is null the input directory is used.</param>
+        /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
-        public static string EncryptFileWithStream(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, string outputFolder = null, bool maskFileName = false)
+        public static string EncryptFileWithStream(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
             string outputFullPath = String.Empty;
             string outputFile = String.Empty;
@@ -183,6 +195,11 @@ namespace StreamCryptor
             {
                 throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
             }
+            //validate the file extension
+            if (!fileExtension[0].Equals('.'))
+            {
+                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+            }
             //validate the outputFolder
             if (outputFolder == null)
             {
@@ -199,14 +216,14 @@ namespace StreamCryptor
             //generate the name of the output file
             if (maskFileName)
             {
-                //store the output file with a masked file name and the DEFAULT_FILE_EXTENSION
-                outputFile = Helper.Utils.GetRandomString(MASKED_FILENAME_LENGTH) + DEFAULT_FILE_EXTENSION;
+                //store the output file with a masked file name and the fileExtension
+                outputFile = Helper.Utils.GetRandomString(MASKED_FILENAME_LENGTH) + fileExtension;
                 outputFullPath = Path.Combine(outputFolder, outputFile);
             }
             else
             {
-                //store the output file, just with the DEFAULT_FILE_EXTENSION
-                outputFile = inputFileInfo.Name + DEFAULT_FILE_EXTENSION;
+                //store the output file, just with the fileExtension
+                outputFile = inputFileInfo.Name + fileExtension;
                 outputFullPath = Path.Combine(outputFolder, outputFile);
             }
             //prepare our file header

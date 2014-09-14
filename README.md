@@ -26,16 +26,16 @@ All cryptographic operations are performed via [libsodium](https://github.com/je
 
 #### Encrypt
 ```csharp
-public static string EncryptFileWithStream(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, string outputFolder = null, bool maskFileName = false)
+public static string EncryptFileWithStream(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
 ```
 
 ```csharp
-public static string EncryptFileWithStream(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, string outputFolder = null, bool maskFileName = false)
+public static string EncryptFileWithStream(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
 ```
 
 ```csharp
 //overloaded version (will use the senderKeyPair.PublicKey as recipientPublicKey)
-public static string EncryptFileWithStream(KeyPair senderKeyPair, string inputFile, string outputFolder = null, bool maskFileName = false) 
+public static string EncryptFileWithStream(KeyPair senderKeyPair, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false) 
 ```
 #### Decrypt
 ```csharp
@@ -62,8 +62,8 @@ private const int NONCE_LENGTH = 24;
 private const int MAX_FILENAME_LENGTH = 256;
 private const int ASYNC_KEY_LENGTH = 32;
 private const int MASKED_FILENAME_LENGTH = 11;
-private const string DEFAULT_FILE_EXTENSION = ".encrypted";
-private const string TEMP_FILE_EXTENSION = ".t";
+private const string DEFAULT_FILE_EXTENSION = ".sccef"; //StreamCryptor Chunked Encrypted File
+private const string TEMP_FILE_EXTENSION = ".tmp";
 ```
 
 ## Chunk length

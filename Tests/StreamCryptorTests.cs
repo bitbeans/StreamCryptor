@@ -20,7 +20,7 @@ namespace Tests
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
             Console.Write("Encrypting testfile . . .\n");
-            string encryptedFile = StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, Utilities.HexToBinary(PUBLIC_KEY), RAW_FILE, OUTPUT_DIRECTORY, true);
+            string encryptedFile = StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, Utilities.HexToBinary(PUBLIC_KEY), RAW_FILE, OUTPUT_DIRECTORY, ".test", true);
             Console.Write("Decrypting testfile . . .\n");
             string decryptedFile = StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), OUTPUT_DIRECTORY);
             Console.Write("Get checksum of testfiles . . .\n");
@@ -37,9 +37,9 @@ namespace Tests
         public void StreamCryptorSmallFileTest()
         {
             const string TESTFILE_RAW = "Testfiles\\smallfile.dat";
-            const string TESTFILE_ENCRYPTED = "Testfiles\\smallfile.dat.encrypted";
             const string TESTFILE_DECRYPTED_FILE = "Testfiles\\decrypted\\smallfile.dat";
             const string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            const string OUTPUT_DIRECTORY = "Testfiles";
             const long TESTFILE_SIZE_KB = 1;
             string PRIVATE_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
@@ -50,14 +50,14 @@ namespace Tests
             fs.WriteByte(0);
             fs.Close();
             Console.Write("Encrypting testfile . . .\n");
-            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, null, false);
+            string encryptedFile = StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, null);
             Console.Write("Decrypting testfile . . .\n");
-            StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, TESTFILE_ENCRYPTED, TESTFILE_DECRYPTED_OUTPUT_DIRECTORY);
+            StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), TESTFILE_DECRYPTED_OUTPUT_DIRECTORY);
             Console.Write("Get checksum of testfiles . . .\n");
             Assert.AreEqual(StreamCryptor.Helper.Utils.GetChecksum(TESTFILE_RAW), StreamCryptor.Helper.Utils.GetChecksum(TESTFILE_DECRYPTED_FILE));
             //clear garbage 
             File.Delete(TESTFILE_RAW);
-            File.Delete(TESTFILE_ENCRYPTED);
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
             File.Delete(TESTFILE_DECRYPTED_FILE);
         }
 
@@ -68,9 +68,9 @@ namespace Tests
         public void StreamCryptorLargeFileTest()
         {
             const string TESTFILE_RAW = "Testfiles\\largefile.dat";
-            const string TESTFILE_ENCRYPTED = "Testfiles\\largefile.dat.encrypted";
             const string TESTFILE_DECRYPTED_FILE = "Testfiles\\decrypted\\largefile.dat";
             const string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            const string OUTPUT_DIRECTORY = "Testfiles";
             const long TESTFILE_SIZE_GB = 1;
             string PRIVATE_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
@@ -90,7 +90,7 @@ namespace Tests
             //encrypting
             testTimer.Start();
             Console.Write("Encrypting testfile . . .\n");
-            StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, null, false);
+            string encryptedFile = StreamCryptor.StreamCryptor.EncryptFileWithStream(keyPair, TESTFILE_RAW, null);
             testTimer.Stop();
             elapsedSeconds = testTimer.Elapsed.Seconds;
             Console.Write(string.Format("Time to encrypt testfile: {0} s\n", elapsedSeconds));
@@ -98,7 +98,7 @@ namespace Tests
             //decrypting
             testTimer.Start();
             Console.Write("Decrypting testfile . . .\n");
-            StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, TESTFILE_ENCRYPTED, TESTFILE_DECRYPTED_OUTPUT_DIRECTORY);
+            StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), TESTFILE_DECRYPTED_OUTPUT_DIRECTORY);
             testTimer.Stop();
             elapsedSeconds = testTimer.Elapsed.Seconds;
             Console.Write(string.Format("Time to decrypt testfile: {0} s\n", elapsedSeconds));
@@ -113,7 +113,7 @@ namespace Tests
             testTimer.Reset();
             //clear garbage 
             File.Delete(TESTFILE_RAW);
-            File.Delete(TESTFILE_ENCRYPTED);
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
             File.Delete(TESTFILE_DECRYPTED_FILE);
         }
     }
