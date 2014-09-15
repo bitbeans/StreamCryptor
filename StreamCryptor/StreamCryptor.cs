@@ -423,7 +423,7 @@ namespace StreamCryptor
                     EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
                     encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Base128, 1);
                     //decrypt the ephemeral key with our public box 
-                    byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, encryptedFileHeader.SenderPublicKey, recipientPrivateKey);
+                    byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, recipientPrivateKey, encryptedFileHeader.SenderPublicKey);
                     byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key, BitConverter.GetBytes(encryptedFileHeader.UnencryptedFileLength)), ephemeralKey, HEADER_CHECKSUM_LENGTH);
                     //check file header
                     if ((encryptedFileHeader.Version >= MIN_VERSION) &&

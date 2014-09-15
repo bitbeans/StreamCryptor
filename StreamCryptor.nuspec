@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.1.15</version>
+        <version>0.1.16</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
@@ -12,7 +12,10 @@
 
 All cryptographic operations are performed via libsodium.</description>
         <summary>Stream encryption &amp; decryption with libsodium and protbuf-net</summary>
-        <releaseNotes />
+        <releaseNotes>0.1.16
+* There was a bug on decrypting files with external private keys
+0.1.15
+* Changed TargetFrameworkVersion from v4.5 to v4.0</releaseNotes>
         <copyright>Copyright (c) 2014 Christian Hermann (bitbeans)</copyright>
         <language>en-US</language>
         <tags>stream encryption protobuf libsodium</tags>
