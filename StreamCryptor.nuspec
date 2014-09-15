@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+    <metadata>
+        <id>StreamCryptor</id>
+        <version>0.1.14</version>
+        <authors>Christian Hermann</authors>
+        <owners>Christian Hermann</owners>
+        <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
+        <projectUrl>https://github.com/bitbeans/StreamCryptor</projectUrl>
+        <requireLicenseAcceptance>true</requireLicenseAcceptance>
+        <description>StreamCryptor uses FileStream to encrypt and decrypt files in chunks. Every file contains a EncryptedFileHeader some EncryptedFileChunks and an EncryptedFileFooter. The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
+
+All cryptographic operations are performed via libsodium.</description>
+        <summary>Stream encryption &amp; decryption with libsodium and protbuf-net</summary>
+        <releaseNotes />
+        <copyright>Copyright (c) 2014 Christian Hermann (bitbeans)</copyright>
+        <language>en-US</language>
+        <tags>stream encryption protobuf libsodium</tags>
+        <dependencies>
+            <group targetFramework=".NETFramework4.5">
+                <dependency id="protobuf-net" version="2.0.0.668" />
+                <dependency id="libsodium-net" version="0.5.0" />
+            </group>
+        </dependencies>
+    </metadata>
+    <files>
+        <file src="StreamCryptor\bin\Debug\StreamCryptor.dll" target="lib\net45\StreamCryptor.dll" />
+    </files>
+</package>

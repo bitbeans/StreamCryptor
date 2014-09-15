@@ -11,6 +11,10 @@ All cryptographic operations are performed via [libsodium](https://github.com/je
 
 :bug: It could contain bugs.
 
+## Installation
+
+**Windows**: there is now a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) available.
+
 ## This project uses the following libraries
 
   * [libsodium-net] - A secure cryptographic library
