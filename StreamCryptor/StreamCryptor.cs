@@ -541,7 +541,11 @@ namespace StreamCryptor
                 //delete the temp file
                 File.Delete(tmpFullPath);
                 //and throw the exception
-                ExceptionDispatchInfo.Capture(ex).Throw();
+                #if NET45
+                    ExceptionDispatchInfo.Capture(ex).Throw();
+                #else
+                    throw ex;
+                #endif
             }
             return outputFile;
         }

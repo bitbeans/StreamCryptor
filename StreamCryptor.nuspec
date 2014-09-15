@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.1.14</version>
+        <version>0.1.15</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
@@ -17,13 +17,13 @@ All cryptographic operations are performed via libsodium.</description>
         <language>en-US</language>
         <tags>stream encryption protobuf libsodium</tags>
         <dependencies>
-            <group targetFramework=".NETFramework4.5">
-                <dependency id="protobuf-net" version="2.0.0.668" />
+            <group targetFramework=".NETFramework4.0">
                 <dependency id="libsodium-net" version="0.5.0" />
+                <dependency id="protobuf-net" version="2.0.0.668" />
             </group>
         </dependencies>
     </metadata>
     <files>
-        <file src="StreamCryptor\bin\Debug\StreamCryptor.dll" target="lib\net45\StreamCryptor.dll" />
+        <file src="StreamCryptor\bin\Debug\StreamCryptor.dll" target="lib\net40\StreamCryptor.dll" />
     </files>
 </package>
