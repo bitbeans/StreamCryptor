@@ -26,7 +26,7 @@ All cryptographic operations are performed via [libsodium](https://github.com/je
 
 ## Usage
 
-### Methods
+### Synchronous Methods
 
 #### Encrypt
 ```csharp
@@ -50,6 +50,23 @@ public static string DecryptFileWithStream(byte[] recipientPrivateKey, string in
 //overloaded version (keyPair.PublicKey will be ignored)
 public static string DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool overWrite = false)
 ```
+
+### Asynchronous Methods
+
+#### Encrypt
+```csharp
+public static async Task<string> EncryptFileWithStreamAsync(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
+```
+
+#### Decrypt
+```csharp
+public static async Task<string> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
+```
+
+The current implementation of the **Asynchronous Methods** could be run more smoothly (i`am working on this). :v:
+The Problem is, neither libsodium-net nor protobuf-net has an async model.
+
+Some example code [AsyncDemo](examples/DemoAsync.md)
 
 ### And some fixed parameters
 ```csharp

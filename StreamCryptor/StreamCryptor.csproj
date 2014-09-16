@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>StreamCryptor</RootNamespace>
     <AssemblyName>StreamCryptor</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>9a20777c</NuGetPackageImportStamp>
     <TargetFrameworkProfile />
@@ -23,6 +23,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -32,6 +33,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -61,6 +63,7 @@
     <Compile Include="Model\EncryptedFileChunk.cs" />
     <Compile Include="Model\EncryptedFileFooter.cs" />
     <Compile Include="Model\EncryptedFileHeader.cs" />
+    <Compile Include="Model\StreamCryptorTaskAsyncProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamCryptor.cs" />
   </ItemGroup>

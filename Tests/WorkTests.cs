@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using Sodium;
+using StreamCryptor.Model;
 using System;
 using System.IO;
 
@@ -168,6 +169,104 @@ namespace Tests
             testTimer.Start();
             Console.Write("Decrypting testfile . . .\n");
             StreamCryptor.StreamCryptor.DecryptFileWithStream(keyPair, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), TESTFILE_DECRYPTED_OUTPUT_DIRECTORY);
+            testTimer.Stop();
+            elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to decrypt testfile: {0} s\n", elapsedSeconds));
+            testTimer.Reset();
+            //checksum
+            testTimer.Start();
+            Console.Write("Get checksum of testfiles . . .\n");
+            Assert.AreEqual(StreamCryptor.Helper.Utils.GetChecksum(TESTFILE_RAW), StreamCryptor.Helper.Utils.GetChecksum(TESTFILE_DECRYPTED_FILE));
+            testTimer.Stop();
+            elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to generate testfile checksums: {0} s\n", elapsedSeconds));
+            testTimer.Reset();
+            //clear garbage 
+            File.Delete(TESTFILE_RAW);
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
+            File.Delete(TESTFILE_DECRYPTED_FILE);
+        }
+
+        /// <summary>
+        /// Self encrypt and decrypt an image file async.
+        ///</summary>
+        [Test]
+        public async void WorkWithImageFileTestAsync()
+        {
+            var progressEncrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            var progressDecrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            progressEncrypt.ProgressChanged += (s, e) =>
+            {
+                Console.WriteLine("Encrypting: " + e.ProgressPercentage + "%");
+            };
+            progressDecrypt.ProgressChanged += (s, e) =>
+            {
+                Console.WriteLine("Decrypting: " + e.ProgressPercentage + "%");
+            };
+            const string RAW_FILE = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
+            const string OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+            string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+            KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
+            Console.Write("Encrypting testfile . . .\n");
+            string encryptedFile = await StreamCryptor.StreamCryptor.EncryptFileWithStreamAsync(keyPair.PrivateKey, keyPair.PublicKey, Utilities.HexToBinary(PUBLIC_KEY), RAW_FILE, progressEncrypt, OUTPUT_DIRECTORY, ".test", true);
+            Console.Write("Decrypting testfile . . .\n");
+            string decryptedFile = await StreamCryptor.StreamCryptor.DecryptFileWithStreamAsync(keyPair.PrivateKey, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), OUTPUT_DIRECTORY, progressDecrypt);
+            Console.Write("Get checksum of testfiles . . .\n");
+            Assert.AreEqual(StreamCryptor.Helper.Utils.GetChecksum(RAW_FILE), StreamCryptor.Helper.Utils.GetChecksum(Path.Combine(OUTPUT_DIRECTORY, decryptedFile)));
+            //clear garbage 
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, decryptedFile));
+        }
+
+        /// <summary>
+        /// Self encrypt and decrypt a large file async.
+        /// </summary>
+        [Test]
+        public async void WorkWithLargeFileTestAsync()
+        {
+            var progressEncrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            var progressDecrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            progressEncrypt.ProgressChanged += (s, e) =>
+            {
+                Console.WriteLine("Encrypting: " + e.ProgressPercentage + "%");
+            };
+            progressDecrypt.ProgressChanged += (s, e) =>
+            {
+                Console.WriteLine("Decrypting: " + e.ProgressPercentage + "%");
+            };
+            const string TESTFILE_RAW = "Testfiles\\largefile.dat";
+            const string TESTFILE_DECRYPTED_FILE = "Testfiles\\decrypted\\largefile.dat";
+            const string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            const string OUTPUT_DIRECTORY = "Testfiles";
+            const long TESTFILE_SIZE_GB = 1;
+            string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+            string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+            KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
+            Console.Write(string.Format("Generating {0} GB testfile . . .\n", TESTFILE_SIZE_GB));
+            System.Diagnostics.Stopwatch testTimer = new System.Diagnostics.Stopwatch();
+            //generating
+            testTimer.Start();
+            FileStream fs = new FileStream(TESTFILE_RAW, FileMode.CreateNew);
+            fs.Seek((TESTFILE_SIZE_GB * 1024) * 1024 * 1024, SeekOrigin.Begin);
+            fs.WriteByte(0);
+            fs.Close();
+            testTimer.Stop();
+            int elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to generate testfile: {0} s\n", elapsedSeconds));
+            testTimer.Reset();
+            //encrypting
+            testTimer.Start();
+            Console.Write("Encrypting testfile . . .\n");
+            string encryptedFile = await StreamCryptor.StreamCryptor.EncryptFileWithStreamAsync(keyPair.PrivateKey,keyPair.PublicKey,keyPair.PublicKey, TESTFILE_RAW, progressEncrypt);
+            testTimer.Stop();
+            elapsedSeconds = testTimer.Elapsed.Seconds;
+            Console.Write(string.Format("Time to encrypt testfile: {0} s\n", elapsedSeconds));
+            testTimer.Reset();
+            //decrypting
+            testTimer.Start();
+            Console.Write("Decrypting testfile . . .\n");
+            await StreamCryptor.StreamCryptor.DecryptFileWithStreamAsync(keyPair.PrivateKey, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), TESTFILE_DECRYPTED_OUTPUT_DIRECTORY, progressDecrypt);
             testTimer.Stop();
             elapsedSeconds = testTimer.Elapsed.Seconds;
             Console.Write(string.Format("Time to decrypt testfile: {0} s\n", elapsedSeconds));
