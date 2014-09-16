@@ -337,7 +337,6 @@ namespace StreamCryptor
                             Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileFooter, PrefixStyle.Base128, 3);
                         }
                     } while (bytesRead != 0);
-                    
                 }
             }
             return outputFile;
@@ -353,7 +352,7 @@ namespace StreamCryptor
         /// <returns>The fullpath to the decrypted file.</returns>
         public static string DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool overWrite = false)
         {
-            //validate the keyPair
+            //validate the keyPair (we also could ignore the PublicKey, it`s never used ...)
             if (keyPair == null || keyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || keyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
             {
                 throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");

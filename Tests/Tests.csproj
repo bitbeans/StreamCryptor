@@ -47,7 +47,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="StreamCryptorTests.cs" />
+    <Compile Include="DecryptExceptionTests.cs" />
+    <Compile Include="EncryptExceptionTests.cs" />
+    <Compile Include="WorkTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
