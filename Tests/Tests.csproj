@@ -47,8 +47,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DecryptExceptionAsyncTests.cs" />
     <Compile Include="DecryptExceptionTests.cs" />
+    <Compile Include="EncryptExceptionAsyncTests.cs" />
     <Compile Include="EncryptExceptionTests.cs" />
+    <Compile Include="WorkAsyncTest.cs" />
     <Compile Include="WorkTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -58,9 +58,22 @@ public static string DecryptFileWithStream(KeyPair keyPair, string inputFile, st
 public static async Task<string> EncryptFileWithStreamAsync(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
 ```
 
+```csharp
+public static async Task<string> EncryptFileWithStream(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
+```
+
+```csharp
+//overloaded version (will use the senderKeyPair.PublicKey as recipientPublicKey)
+public static async Task<string> EncryptFileWithStream(KeyPair senderKeyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false) 
+```
 #### Decrypt
 ```csharp
 public static async Task<string> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
+```
+
+```csharp
+//overloaded version (keyPair.PublicKey will be ignored)
+public static async Task<string> DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
 ```
 
 The current implementation of the **Asynchronous Methods** could be run more smoothly (i`am working on this). :v:
@@ -89,7 +102,7 @@ private const string TEMP_FILE_EXTENSION = ".tmp";
 
 ## Chunk length
 
-I have done some time tests with different CHUNK_LENGTH`s and a **1GB** testfile, here are the results of **my** system:
+I have done some time tests with different CHUNK_LENGTH`s and a **1GB** testfile, here are the results on **my** system:
 
 |             | 524288      | 1048576     | 52428800    | 104857600   |
 | :----------- | :-----------: | :-----------: | :-----------: | :-----------: |
