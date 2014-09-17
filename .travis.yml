@@ -7,7 +7,7 @@ env:
  - TRAVIS_OS_UNAME=$(uname -s)
 
 install:
- - if [[ $TRAVIS_OS_UNAME = 'linux' ]]; then bash travis-linux-deps.sh; fi
+ - if [[ $TRAVIS_OS_UNAME = 'Linux' ]]; then bash travis-linux-deps.sh; fi
 
 script:
  - bash nunit-console.sh ./Tests/bin/Debug/Tests.dll
