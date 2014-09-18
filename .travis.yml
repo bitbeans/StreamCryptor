@@ -1,11 +1,11 @@
-language: objective-c
+language: c
 
 env:
  global:
   - EnableNuGetPackageRestore=true 
+  - TRAVIS_OS_UNAME=$(uname -s)
  matrix:
   - MONO_VERSION="3.8.0"
-  - TRAVIS_OS_UNAME=$(uname -s)
 
 os:
  - linux

@@ -26,15 +26,6 @@ namespace Tests
         }
 
         [Test]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
-        public async void EncryptionInvalidInputFileNameTestAsync()
-        {
-            //Currently no test, because the path will be too long.
-            //Just pass this. :)
-            throw new ArgumentOutOfRangeException("badtest");
-        }
-
-        [Test]
         [ExpectedException(typeof(NullReferenceException))]
         public async void EncryptionNoPrivateKeyInPairTestAsync()
         {
