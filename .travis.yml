@@ -10,4 +10,5 @@ install:
  - if [[ $TRAVIS_OS_UNAME = 'Linux' ]]; then bash travis-linux-deps.sh; fi
 
 script:
+ - xbuild StreamCryptor.sln
  - bash nunit-console.sh ./Tests/bin/Debug/Tests.dll
