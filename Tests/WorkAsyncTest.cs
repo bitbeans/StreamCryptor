@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -16,6 +17,32 @@ namespace Tests
     [TestFixture]
     public class WorkAsyncTest
     {
+        /// <summary>
+        /// Self encrypt an image file and decrypt with wrong key async.
+        ///</summary>
+        [Test]
+        [ExpectedException(typeof(CryptographicException))]
+        public async void WorkWithImageFileAndWrongKeyTestAsync()
+        {
+            const string RAW_FILE = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
+            const string OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+            string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+            KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
+            KeyPair testKeyPair = Sodium.PublicKeyBox.GenerateKeyPair();
+            Console.Write("Encrypting testfile . . .\n");
+            //encrypt the file with an ephmeral key
+            string encryptedFile = await StreamCryptor.StreamCryptor.EncryptFileWithStreamAsync(keyPair, testKeyPair.PublicKey, RAW_FILE, null, OUTPUT_DIRECTORY, ".test", true);
+            Console.Write("Decrypting testfile . . .\n");
+            //try to decrypt with an wrong key
+            string decryptedFile = await StreamCryptor.StreamCryptor.DecryptFileWithStreamAsync(keyPair, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), OUTPUT_DIRECTORY);
+            Console.Write("Get checksum of testfiles . . .\n");
+            Assert.AreEqual(StreamCryptor.Helper.Utils.GetChecksum(RAW_FILE), StreamCryptor.Helper.Utils.GetChecksum(Path.Combine(OUTPUT_DIRECTORY, decryptedFile)));
+            //clear garbage 
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, decryptedFile));
+        }
+
         /// <summary>
         /// Self encrypt and decrypt an image file async.
         ///</summary>

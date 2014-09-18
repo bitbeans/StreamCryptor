@@ -1,10 +1,13 @@
-language: c
-
-os:
- - linux
+language: objective-c
 
 env:
  - TRAVIS_OS_UNAME=$(uname -s)
+ global:
+  - EnableNuGetPackageRestore=true 
+ matrix:
+  - MONO_VERSION="3.8.0"
+os:
+ - linux
 
 install:
  - if [[ $TRAVIS_OS_UNAME = 'Linux' ]]; then bash travis-linux-deps.sh; fi
