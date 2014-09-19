@@ -203,8 +203,6 @@ namespace StreamCryptor
         /// <returns>The name of the encrypted file.</returns>
         public static string EncryptFileWithStream(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
-            string outputFullPath = String.Empty;
-            string outputFile = String.Empty;
             //validate the senderPrivateKey
             if (senderPrivateKey == null || senderPrivateKey.Length != ASYNC_KEY_LENGTH)
             {
