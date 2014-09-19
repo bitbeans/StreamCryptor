@@ -1,14 +1,15 @@
 language: c
 
+os:
+ - osx
+ - linux
+ 
 env:
  global:
   - EnableNuGetPackageRestore=true 
   - TRAVIS_OS_UNAME=$(uname -s)
  matrix:
   - MONO_VERSION="3.8.0"
-
-os:
- - linux
 
 install:
  - if [[ $TRAVIS_OS_UNAME = 'Linux' ]]; then bash travis-linux-deps.sh; fi
