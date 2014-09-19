@@ -8,7 +8,6 @@ env:
   - MONO_VERSION="3.8.0"
 
 os:
- - osx
  - linux
 
 install:
