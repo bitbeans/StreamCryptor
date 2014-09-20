@@ -20,8 +20,8 @@ namespace Tests
         [ExpectedException(typeof(CryptographicException))]
         public void WorkWithImageFileAndWrongKeyTest()
         {
-            const string RAW_FILE = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
-            const string OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string RAW_FILE = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
+            string OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
             string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
             string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
             KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
@@ -45,8 +45,8 @@ namespace Tests
         [Test]
         public void WorkWithImageFileTest()
         {
-            const string RAW_FILE = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
-            const string OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string RAW_FILE = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
+            string OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
             string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
             string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
             KeyPair keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
@@ -67,8 +67,8 @@ namespace Tests
         [Test]
         public void WorkWithImageFileExternalTest()
         {
-            const string RAW_FILE = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
-            const string OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string RAW_FILE = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
+            string OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
 
             string PRIVATE_KEY_RECIPIENT = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
             string PUBLIC_KEY_RECIPIENT = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
@@ -102,9 +102,9 @@ namespace Tests
         [Test]
         public void WorkWithVerySmallFileTest()
         {
-            const string TESTFILE_RAW = "Testfiles\\verysmallfile.dat";
-            const string TESTFILE_DECRYPTED_FILE = "Testfiles\\decrypted\\verysmallfile.dat";
-            const string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string TESTFILE_RAW = Path.Combine("Testfiles", "verysmallfile.dat");
+            string TESTFILE_DECRYPTED_FILE = Path.Combine("Testfiles", "decrypted", "verysmallfile.dat");
+            string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
             const string OUTPUT_DIRECTORY = "Testfiles";
             const long TESTFILE_SIZE_KB = 1;
             string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
@@ -133,9 +133,9 @@ namespace Tests
         [Test]
         public void WorkWithSmallFileTest()
         {
-            const string TESTFILE_RAW = "Testfiles\\verysmallfile.dat";
-            const string TESTFILE_DECRYPTED_FILE = "Testfiles\\decrypted\\verysmallfile.dat";
-            const string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string TESTFILE_RAW = Path.Combine("Testfiles", "verysmallfile.dat");
+            string TESTFILE_DECRYPTED_FILE = Path.Combine("Testfiles", "decrypted", "verysmallfile.dat");
+            string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
             const string OUTPUT_DIRECTORY = "Testfiles";
             const long TESTFILE_SIZE_KB = 1024;
             string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
@@ -164,9 +164,9 @@ namespace Tests
         [Test]
         public void WorkWithLargeFileTest()
         {
-            const string TESTFILE_RAW = "Testfiles\\largefile.dat";
-            const string TESTFILE_DECRYPTED_FILE = "Testfiles\\decrypted\\largefile.dat";
-            const string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = "Testfiles\\decrypted";
+            string TESTFILE_RAW = Path.Combine("Testfiles", "largefile.dat");
+            string TESTFILE_DECRYPTED_FILE = Path.Combine("Testfiles", "decrypted", "largefile.dat");
+            string TESTFILE_DECRYPTED_OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
             const string OUTPUT_DIRECTORY = "Testfiles";
             const long TESTFILE_SIZE_GB = 1;
             string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
