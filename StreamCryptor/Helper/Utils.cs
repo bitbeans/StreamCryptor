@@ -111,5 +111,14 @@ namespace StreamCryptor.Helper
             }
             return Encoding.UTF8.GetString(paddedByteArray).TrimEnd('\0');
         }
+
+        /// <summary>
+        /// Determines if is mono runtime.
+        /// </summary>
+        /// <returns><c>true</c> if is mono runtime; otherwise, <c>false</c>.</returns>
+        public static bool IsMonoRuntime()
+        {
+            return Type.GetType("Mono.Runtime") != null;
+        }
     }
 }
