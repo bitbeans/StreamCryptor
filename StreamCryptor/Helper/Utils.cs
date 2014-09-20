@@ -111,5 +111,32 @@ namespace StreamCryptor.Helper
             }
             return Encoding.UTF8.GetString(paddedByteArray).TrimEnd('\0');
         }
+
+        /// <summary>
+        /// Determines if is mono runtime.
+        /// </summary>
+        /// <returns><c>true</c> if is mono runtime; otherwise, <c>false</c>.</returns>
+        public static bool IsMonoRuntime()
+        {
+            return Type.GetType("Mono.Runtime") != null;
+        }
+
+        /// <summary>
+        /// Is running on windows.
+        /// </summary>
+        /// <returns><c>true</c>, if on windows was runninged, <c>false</c> otherwise.</returns>
+        public static bool IsRunningOnWindows()
+        {
+            switch (Environment.OSVersion.Platform)
+            {
+                case PlatformID.Win32NT:
+                case PlatformID.Win32S:
+                case PlatformID.Win32Windows:
+                case PlatformID.WinCE:
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 }

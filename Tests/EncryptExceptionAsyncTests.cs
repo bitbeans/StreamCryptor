@@ -92,7 +92,7 @@ namespace Tests
         [ExpectedException(typeof(DirectoryNotFoundException))]
         public async void EncryptionOutputFolderNotFoundTestAsync()
         {
-            const string TESTFILE_RAW = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
+            string TESTFILE_RAW = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
             string PRIVATE_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             KeyPair testKeyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
@@ -103,11 +103,11 @@ namespace Tests
         [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public async void EncryptionBadFileExtensionTestAsync()
         {
-            const string TESTFILE_RAW = "Testfiles\\MyAwesomeChipmunkKiller.jpg";
+            string TESTFILE_RAW = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
             string PRIVATE_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
             KeyPair testKeyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
-            await StreamCryptor.StreamCryptor.EncryptFileWithStreamAsync(testKeyPair, TESTFILE_RAW, null, "Testfiles\\decrypted", "hulk");
+            await StreamCryptor.StreamCryptor.EncryptFileWithStreamAsync(testKeyPair, TESTFILE_RAW, null, Path.Combine("Testfiles", "decrypted"), "hulk");
         }
     }
 }
