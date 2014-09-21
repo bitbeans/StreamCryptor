@@ -1,4 +1,4 @@
-# StreamCryptor [![Build status](https://ci.appveyor.com/api/projects/status/73fb5hecxx9xjyip)](https://ci.appveyor.com/project/bitbeans/streamcryptor)
+# StreamCryptor [![Build status](https://ci.appveyor.com/api/projects/status/73fb5hecxx9xjyip)](https://ci.appveyor.com/project/bitbeans/streamcryptor) [![Build Status](https://travis-ci.org/bitbeans/StreamCryptor.svg?branch=master)](https://travis-ci.org/bitbeans/StreamCryptor)
 StreamCryptor uses `FileStream` to encrypt and decrypt files in chunks. Every file contains a `EncryptedFileHeader` some `EncryptedFileChunks` and an `EncryptedFileFooter`. The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
 
 All cryptographic operations are performed via [libsodium](https://github.com/jedisct1/libsodium).

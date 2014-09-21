@@ -5,9 +5,8 @@ os:
  - linux
  
 env:
- global:
-  - EnableNuGetPackageRestore=true 
-  - TRAVIS_OS_UNAME=$(uname -s)
+ - EnableNuGetPackageRestore=true 
+ - TRAVIS_OS_UNAME=$(uname -s)
 
 install:
  - if [[ $TRAVIS_OS_UNAME = 'Linux' ]]; then bash travis-linux-deps.sh; fi
@@ -18,4 +17,5 @@ before_script:
  
 script:
  - xbuild StreamCryptor.sln
+ - cp /home/travis/build/bitbeans/StreamCryptor/packages/libsodium-net.0.6.0-beta1/lib/Net40/Sodium.dll.config /home/travis/build/bitbeans/StreamCryptor/StreamCryptor/bin/Debug/Sodium.dll.config
  - bash nunit-console.sh ./Tests/bin/Debug/Tests.dll
