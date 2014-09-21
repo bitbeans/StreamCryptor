@@ -9,4 +9,4 @@ sudo installer -pkg "MonoFramework-MDK-${MONO_VER}.macos10.xamarin.x86.pkg" -tar
 
 mozroots --import --sync
 mono --runtime=v4.0 ./.nuget/NuGet.exe restore ./libsodium-net.sln
-echo "mono --runtime=v4.0  ./packages/NUnit.Runners.2.6.3/tools/nunit-console.exe \"\$@\"" > nunit-console.sh
+echo "mono --runtime=v4.0 ./packages/NUnit.Runners.2.6.3/tools/nunit-console.exe \"\$@\"" > nunit-console.sh
