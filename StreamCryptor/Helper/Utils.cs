@@ -28,10 +28,11 @@ namespace StreamCryptor.Helper
         /// </summary>
         /// <param name="path">The full path.</param>
         /// <returns>SHA256 checksum without hyphens.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public static string GetChecksum(string path)
         {
             if (path == null)
-                throw new ArgumentNullException("path","can not be null");
+                throw new ArgumentNullException("path", "path can not be null");
 
             string checksum = "";
             using (System.IO.FileStream stream = System.IO.File.OpenRead(path))
@@ -46,13 +47,14 @@ namespace StreamCryptor.Helper
         /// <summary>
         /// Generates random number.
         /// </summary>
-        /// <param name="maxNumber"></param>
+        /// <param name="maxNumber">The max number.</param>
         /// <see cref="http://blog.codeeffects.com/Article/Generate-Random-Numbers-And-Strings-C-Sharp"/>
-        /// <returns></returns>
+        /// <returns>A random number.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static int GetRandomNumber(int maxNumber)
         {
             if (maxNumber < 1)
-                throw new System.Exception("The maxNumber value should be greater than 1");
+                throw new ArgumentOutOfRangeException("maxNumber", "maxNumber must be greater than 0");
             byte[] b = new byte[4];
             new System.Security.Cryptography.RNGCryptoServiceProvider().GetBytes(b);
             int seed = (b[0] & 0x7f) << 24 | b[1] << 16 | b[2] << 8 | b[3];
@@ -65,7 +67,7 @@ namespace StreamCryptor.Helper
         /// </summary>
         /// <param name="length">length of the random string.</param>
         /// <see cref="http://blog.codeeffects.com/Article/Generate-Random-Numbers-And-Strings-C-Sharp"/>
-        /// <returns></returns>
+        /// <returns>A random string.</returns>
         public static string GetRandomString(int length)
         {
             string[] array = new string[54]
@@ -85,15 +87,16 @@ namespace StreamCryptor.Helper
         /// <param name="str">The input string.</param>
         /// <param name="paddingLength">The padding length.</param>
         /// <returns>A byte[256] array.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static byte[] StringToPaddedByteArray(string str, int paddingLength)
         {
             if (str.Length > 256)
             {
-                throw new ArgumentOutOfRangeException("str must be <= 256 chars");
+                throw new ArgumentOutOfRangeException("str", "str must be <= 256 chars");
             }
             if (paddingLength > 256)
             {
-                throw new ArgumentOutOfRangeException("paddingLength must be <= 256");
+                throw new ArgumentOutOfRangeException("paddingLength", "paddingLength must be <= 256");
             }
             return Encoding.UTF8.GetBytes(str.PadRight(paddingLength, '\0'));
         }
@@ -103,11 +106,12 @@ namespace StreamCryptor.Helper
         /// </summary>
         /// <param name="paddedByteArray">The padded byte array.</param>
         /// <returns>An unpadded string.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public static string PaddedByteArrayToString(byte[] paddedByteArray)
         {
             if (paddedByteArray == null)
             {
-                throw new ArgumentNullException("paddedByteArray can not be null");
+                throw new ArgumentNullException("paddedByteArray", "paddedByteArray can not be null");
             }
             return Encoding.UTF8.GetString(paddedByteArray).TrimEnd('\0');
         }

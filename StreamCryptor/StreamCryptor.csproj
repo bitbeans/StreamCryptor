@@ -68,7 +68,7 @@
     <Compile Include="Model\EncryptedFileHeader.cs" />
     <Compile Include="Model\StreamCryptorTaskAsyncProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StreamCryptor.cs" />
+    <Compile Include="Cryptor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

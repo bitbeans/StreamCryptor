@@ -29,7 +29,7 @@ async Task<string> EncryptAsync(Sodium.KeyPair keyPair, string file)
 		progressBarEncryption.Value = e.ProgressPercentage;
 		textBoxEncryption.Text = e.ProgressPercentage.ToString();
 	};
-	return await StreamCryptor.StreamCryptor.EncryptFileWithStreamAsync(keyPair.PrivateKey, keyPair.PublicKey, keyPair.PublicKey, file, encryptionProgress);
+	return await Cryptor.EncryptFileWithStreamAsync(keyPair.PrivateKey, keyPair.PublicKey, keyPair.PublicKey, file, encryptionProgress);
 }
 
 async Task<string> DecryptAsync(Sodium.KeyPair keyPair, string file, string outputFolder)
@@ -40,6 +40,6 @@ async Task<string> DecryptAsync(Sodium.KeyPair keyPair, string file, string outp
 		progressBarDecryption.Value = e.ProgressPercentage;
 		textBoxDecryption.Text = e.ProgressPercentage.ToString();
 	};
-	return await StreamCryptor.StreamCryptor.DecryptFileWithStreamAsync(keyPair.PrivateKey, file, outputFolder, decryptionProgress);
+	return await Cryptor.DecryptFileWithStreamAsync(keyPair.PrivateKey, file, outputFolder, decryptionProgress);
 }	
 ```

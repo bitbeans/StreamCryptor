@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 namespace StreamCryptor
 {
     /// <summary>
-    /// Class to encrypt and decrypt files in a stream.
+    /// Class to encrypt and decrypt files with use of stream.
     /// Using: libsodium and protobuf-net.
     /// </summary>
-    public static class StreamCryptor
+    public static class Cryptor
     {
         private const int CURRENT_VERSION = 1;
         private const int MIN_VERSION = 1;
@@ -39,6 +39,7 @@ namespace StreamCryptor
         /// <param name="chunkNumber">Number to accumulate.</param>
         /// <param name="isLastChunkInStream">Idicates if this chunk is the last in the stream.</param>
         /// <returns>An accumulated nonce.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         private static byte[] GetChunkNonce(byte[] baseNonce, int chunkNumber, bool isLastChunkInStream = false)
         {
             //validate the length of the baseNonce
@@ -63,6 +64,21 @@ namespace StreamCryptor
             return concatNonce;
         }
 
+        /// <summary>
+        /// Checks a keypair for the right length.
+        /// </summary>
+        /// <param name="keyPair">A keypair to validate.</param>
+        /// <returns><c>true</c>, if valid, <c>false</c> otherwise.</returns>
+        private static bool ValidateKeyPair(KeyPair keyPair)
+        {
+            bool isValid = true;
+            if (keyPair == null || keyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || keyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            {
+                isValid = false;
+            }
+            return isValid;
+        }
+
         #region Synchronous Implementation
         /// <summary>
         /// (Self)Encrypts a file with libsodium and protobuf-net.
@@ -73,32 +89,15 @@ namespace StreamCryptor
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
         public static string EncryptFileWithStream(KeyPair senderKeyPair, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
-            //validate the senderPrivateKey
-            if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            //validate the senderKeyPair
+            if (!ValidateKeyPair(senderKeyPair))
             {
-                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                  string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //retrieve file info
-            FileInfo inputFileInfo = new FileInfo(inputFile);
-            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
-            }
-            //validate the file extension
-            if (!fileExtension[0].Equals('.')) {
-                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+                throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
             try
             {
@@ -133,38 +132,15 @@ namespace StreamCryptor
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
         public static string EncryptFileWithStream(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
-            //validate the senderPrivateKey
-            if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            //validate the senderKeyPair
+            if (!ValidateKeyPair(senderKeyPair))
             {
-                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
-            }
-            //validate the recipientPublicKey
-            if (recipientPublicKey == null || recipientPublicKey.Length != ASYNC_KEY_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("recipientPublicKey", "invalid recipientPublicKey");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                  string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //retrieve file info
-            FileInfo inputFileInfo = new FileInfo(inputFile);
-            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
-            }
-            //validate the file extension
-            if (!fileExtension[0].Equals('.'))
-            {
-                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+                throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
             try
             {
@@ -201,44 +177,11 @@ namespace StreamCryptor
         /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
         public static string EncryptFileWithStream(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
-            //validate the senderPrivateKey
-            if (senderPrivateKey == null || senderPrivateKey.Length != ASYNC_KEY_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("senderPrivateKey", "invalid senderPrivateKey");
-            }
-            //validate the senderPublicKey
-            if (senderPublicKey == null || senderPublicKey.Length != ASYNC_KEY_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("senderPublicKey", "invalid senderPublicKey");
-            }
-            //validate the recipientPublicKey
-            if (recipientPublicKey == null || recipientPublicKey.Length != ASYNC_KEY_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("recipientPublicKey", "invalid recipientPublicKey");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                  string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //retrieve file info
-            FileInfo inputFileInfo = new FileInfo(inputFile);
-            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
-            }
-            //validate the file extension
-            if (!fileExtension[0].Equals('.'))
-            {
-                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
-            }
             try
             {
                 //Call the main method
@@ -271,27 +214,20 @@ namespace StreamCryptor
         /// <param name="outputFolder">There the decrypted file will be stored.</param>
         /// <param name="overWrite">Overwrite the output file if it exist.</param>
         /// <returns>The fullpath to the decrypted file.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
+        /// <exception cref="BadLastFileChunkException"></exception>
+        /// <exception cref="BadFileChunkException"></exception>
+        /// <exception cref="BadFileFooterException"></exception>
+        /// <exception cref="BadFileHeaderException"></exception>
+        /// <exception cref="IOException"></exception>
         public static string DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, bool overWrite = false)
         {
-            //validate the keyPair (we also could ignore the PublicKey, it`s never used ...)
-            if (keyPair == null || keyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || keyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            //validate the keyPair
+            if (!ValidateKeyPair(keyPair))
             {
-                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                    string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //validate the outputFolder
-            if (outputFolder == null || !Directory.Exists(outputFolder))
-            {
-                throw new DirectoryNotFoundException("outputFolder must exist");
+                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
             }
             try
             {
@@ -325,28 +261,16 @@ namespace StreamCryptor
         /// <param name="outputFolder">There the decrypted file will be stored.</param>
         /// <param name="overWrite">Overwrite the output file if it exist.</param>
         /// <returns>The fullpath to the decrypted file.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
+        /// <exception cref="BadLastFileChunkException"></exception>
+        /// <exception cref="BadFileChunkException"></exception>
+        /// <exception cref="BadFileFooterException"></exception>
+        /// <exception cref="BadFileHeaderException"></exception>
+        /// <exception cref="IOException"></exception>
         public static string DecryptFileWithStream(byte[] recipientPrivateKey, string inputFile, string outputFolder, bool overWrite = false)
         {
-            //validate the recipientPrivateKey
-            if (recipientPrivateKey == null || recipientPrivateKey.Length != ASYNC_KEY_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("recipientPrivateKey", "invalid recipientPrivateKey");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                    string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //validate the outputFolder
-            if (outputFolder == null || !Directory.Exists(outputFolder))
-            {
-                throw new DirectoryNotFoundException("outputFolder must exist");
-            }
             try
             {
                 //Call the main method
@@ -383,33 +307,15 @@ namespace StreamCryptor
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
         public static async Task<string> EncryptFileWithStreamAsync(KeyPair senderKeyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
-            //validate the senderPrivateKey
-            if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            //validate the senderKeyPair
+            if (!ValidateKeyPair(senderKeyPair))
             {
-                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                  string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //retrieve file info
-            FileInfo inputFileInfo = new FileInfo(inputFile);
-            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
-            }
-            //validate the file extension
-            if (!fileExtension[0].Equals('.'))
-            {
-                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+                throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
             return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName);
         }
@@ -425,38 +331,15 @@ namespace StreamCryptor
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
         public static async Task<string> EncryptFileWithStreamAsync(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
-            //validate the senderPrivateKey
-            if (senderKeyPair == null || senderKeyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || senderKeyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            //validate the senderKeyPair
+            if (!ValidateKeyPair(senderKeyPair))
             {
-                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
-            }
-            //validate the recipientPublicKey
-            if (recipientPublicKey == null || recipientPublicKey.Length != ASYNC_KEY_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("recipientPublicKey", "invalid recipientPublicKey");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                  string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //retrieve file info
-            FileInfo inputFileInfo = new FileInfo(inputFile);
-            if (inputFileInfo.Name.Length > MAX_FILENAME_LENGTH)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", string.Format("inputFile name must be smaller {0} in length.", MAX_FILENAME_LENGTH));
-            }
-            //validate the file extension
-            if (!fileExtension[0].Equals('.'))
-            {
-                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+                throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
             return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName);
         }
@@ -473,7 +356,9 @@ namespace StreamCryptor
         /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
-        /// <remarks>This method needs a revision.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
         public static async Task<string> EncryptFileWithStreamAsync(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
         {
             string outputFullPath = String.Empty;
@@ -494,7 +379,7 @@ namespace StreamCryptor
                 throw new ArgumentOutOfRangeException("recipientPublicKey", "invalid recipientPublicKey");
             }
             //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
+            if (string.IsNullOrEmpty(inputFile))
             {
                 throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
                   string.Format("inputFile must be greater {0} in length.", 0));
@@ -512,10 +397,10 @@ namespace StreamCryptor
             //validate the file extension
             if (!fileExtension[0].Equals('.'))
             {
-                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension start with: .");
+                throw new ArgumentOutOfRangeException("fileExtension", "fileExtension must start with: .");
             }
             //validate the outputFolder
-            if (outputFolder == null)
+            if (string.IsNullOrEmpty(outputFolder))
             {
                 //use the same directory as inputFile
                 outputFolder = inputFileInfo.DirectoryName;
@@ -674,27 +559,20 @@ namespace StreamCryptor
         /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
         /// <param name="overWrite">Overwrite the output file if it exist.</param>
         /// <returns>The fullpath to the decrypted file.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
+        /// <exception cref="BadLastFileChunkException"></exception>
+        /// <exception cref="BadFileChunkException"></exception>
+        /// <exception cref="BadFileFooterException"></exception>
+        /// <exception cref="BadFileHeaderException"></exception>
+        /// <exception cref="IOException"></exception>
         public static async Task<string> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
         {
-            //validate the keyPair (we also could ignore the PublicKey, it`s never used ...)
-            if (keyPair == null || keyPair.PrivateKey.Length != ASYNC_KEY_LENGTH || keyPair.PublicKey.Length != ASYNC_KEY_LENGTH)
+            //validate the keyPair
+            if (!ValidateKeyPair(keyPair))
             {
-                throw new ArgumentOutOfRangeException("keyPair", "invalid keypair");
-            }
-            //validate the inputFile
-            if (inputFile == null || inputFile.Length < 1)
-            {
-                throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                    string.Format("inputFile must be greater {0} in length.", 0));
-            }
-            if (!File.Exists(inputFile))
-            {
-                throw new FileNotFoundException("inputFile", "inputFile could not be found.");
-            }
-            //validate the outputFolder
-            if (outputFolder == null || !Directory.Exists(outputFolder))
-            {
-                throw new DirectoryNotFoundException("outputFolder must exist");
+                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
             }
             return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, outputFolder, decryptionProgress, overWrite);
         }
@@ -709,6 +587,14 @@ namespace StreamCryptor
         /// <param name="overWrite">Overwrite the output file if it exist.</param>
         /// <returns>The fullpath to the decrypted file.</returns>
         /// <remarks>This method needs a revision.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="DirectoryNotFoundException"></exception>
+        /// <exception cref="BadLastFileChunkException"></exception>
+        /// <exception cref="BadFileChunkException"></exception>
+        /// <exception cref="BadFileFooterException"></exception>
+        /// <exception cref="BadFileHeaderException"></exception>
+        /// <exception cref="IOException"></exception>
         public static async Task<string> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
         {
             string outputFile = String.Empty;
@@ -724,17 +610,17 @@ namespace StreamCryptor
                     throw new ArgumentOutOfRangeException("recipientPrivateKey", "invalid recipientPrivateKey");
                 }
                 //validate the inputFile
-                if (inputFile == null || inputFile.Length < 1)
+                if (string.IsNullOrEmpty(inputFile))
                 {
                     throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
-                        string.Format("inputFile must be greater {0} in length.", 0));
+                      string.Format("inputFile must be greater {0} in length.", 0));
                 }
                 if (!File.Exists(inputFile))
                 {
                     throw new FileNotFoundException("inputFile", "inputFile could not be found.");
                 }
                 //validate the outputFolder
-                if (outputFolder == null || !Directory.Exists(outputFolder))
+                if (string.IsNullOrEmpty(outputFolder) || !Directory.Exists(outputFolder))
                 {
                     throw new DirectoryNotFoundException("outputFolder must exist");
                 }
