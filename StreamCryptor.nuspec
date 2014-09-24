@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.2</version>
+        <version>0.2.2-beta</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
@@ -12,7 +12,12 @@
 
 All cryptographic operations are performed via libsodium.</description>
         <summary>Stream encryption &amp; decryption with libsodium and protbuf-net</summary>
-        <releaseNotes>0.2
+        <releaseNotes>0.2.2
+* Changed Namespace to Cryptor
+* Code improvements
+0.2.1
+* Updated libsodium to 0.6.0-beta1
+0.2
 * Added overloads for asynchronous methods
 * Changed internal use of synchronous methods
 0.1.18
@@ -29,8 +34,8 @@ All cryptographic operations are performed via libsodium.</description>
         <tags>stream encryption protobuf libsodium</tags>
         <dependencies>
             <group targetFramework=".NETFramework4.5">
-                <dependency id="libsodium-net" version="0.5.0" />
                 <dependency id="protobuf-net" version="2.0.0.668" />
+                <dependency id="libsodium-net" version="0.6.0-beta2" />
             </group>
         </dependencies>
     </metadata>
