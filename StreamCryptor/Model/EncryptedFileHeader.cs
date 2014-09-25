@@ -1,4 +1,7 @@
 ﻿using ProtoBuf;
+using StreamCryptor.Helper;
+using System;
+using System.Linq;
 
 namespace StreamCryptor.Model
 {
@@ -37,7 +40,7 @@ namespace StreamCryptor.Model
         /// The header checksum to validate this header.
         /// </summary>
         [ProtoMember(6)]
-        public byte[] HeaderChecksum { get; set; }
+        private byte[] HeaderChecksum { get; set; }
         /// <summary>
         /// Encrypted original filename.
         /// </summary>
@@ -53,6 +56,42 @@ namespace StreamCryptor.Model
         /// </summary>
         [ProtoMember(9)]
         public byte[] SenderPublicKey { get; set; }
-        
+
+        /// <summary>
+        /// Sets the header checksum.
+        /// </summary>
+        /// <param name="ephemeralKey">A 32 byte key.</param>
+        /// <param name="headerChecksumLength">The length of the checksum.</param>
+        public void SetHeaderChecksum(byte[] ephemeralKey, int headerChecksumLength)
+        {
+            this.HeaderChecksum = Sodium.GenericHash.Hash(
+                ArrayHelpers.ConcatArrays(this.BaseNonce,
+                Utils.IntegerToLittleEndian(this.Version),
+                this.Key,
+                BitConverter.GetBytes(this.UnencryptedFileLength)),
+                ephemeralKey,
+                headerChecksumLength);
+        }
+
+        /// <summary>
+        /// Validates the header checksum.
+        /// </summary>
+        /// <param name="ephemeralKey">A 32 byte key.</param>
+        /// <param name="headerChecksumLength">The length of the checksum.</param>
+        /// <exception cref="BadFileHeaderException"></exception>
+        public void ValidateHeaderChecksum(byte[] ephemeralKey, int headerChecksumLength)
+        {
+            byte[] headerChecksum = Sodium.GenericHash.Hash(
+                ArrayHelpers.ConcatArrays(this.BaseNonce, 
+                Utils.IntegerToLittleEndian(this.Version), 
+                this.Key, 
+                BitConverter.GetBytes(this.UnencryptedFileLength)), 
+                ephemeralKey,
+                headerChecksumLength);
+            if (!headerChecksum.SequenceEqual(this.HeaderChecksum))
+            {
+                throw new BadFileHeaderException("Malformed file header: file could be damaged or manipulated!");
+            }
+        }
     }
 }

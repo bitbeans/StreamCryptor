@@ -450,8 +450,8 @@ namespace StreamCryptor
                     encryptedFileHeader.BaseNonce = SodiumCore.GetRandomBytes(CHUNK_BASE_NONCE_LENGTH);
                     //encryptedEphemeral
                     encryptedFileHeader.Key = encryptedEphemeralKey;
-                    //the checksum to validate our file header
-                    encryptedFileHeader.HeaderChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key, BitConverter.GetBytes(fileLength)), ephemeralKey, HEADER_CHECKSUM_LENGTH);
+                    //generate and set the checksum to validate our file header on decryption
+                    encryptedFileHeader.SetHeaderChecksum(ephemeralKey, HEADER_CHECKSUM_LENGTH);
                     //encrypt the file name in the header
                     byte[] fileNameNonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
                     encryptedFileHeader.FilenameNonce = fileNameNonce;
@@ -463,9 +463,7 @@ namespace StreamCryptor
                     //we start at chunk number 0
                     int chunkNumber = CHUNK_COUNT_START;
                     //Prepare the EncryptedFileFooter
-                    EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter();
-                    encryptedFileFooter.FooterNonceCount = SodiumCore.GetRandomBytes(NONCE_LENGTH);
-                    encryptedFileFooter.FooterNonceLength = SodiumCore.GetRandomBytes(NONCE_LENGTH);
+                    EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter(NONCE_LENGTH);
                     long overallChunkLength = 0;
                     //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
                     byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
@@ -538,9 +536,11 @@ namespace StreamCryptor
                             //Encrypt the footer data
                             encryptedFileFooter.ChunkCount = BitConverter.GetBytes(chunkNumber);
                             encryptedFileFooter.OverallChunkLength = BitConverter.GetBytes(overallChunkLength);
-                            encryptedFileFooter.ChunkCount = SecretBox.Create(encryptedFileFooter.ChunkCount, encryptedFileFooter.FooterNonceCount, ephemeralKey);
-                            encryptedFileFooter.OverallChunkLength = SecretBox.Create(encryptedFileFooter.OverallChunkLength, encryptedFileFooter.FooterNonceLength, ephemeralKey);
-                            encryptedFileFooter.FooterChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileFooter.ChunkCount, encryptedFileFooter.OverallChunkLength), ephemeralKey, FOOTER_CHECKSUM_LENGTH);
+                            //generate the FooterChecksum
+                            encryptedFileFooter.SetFooterChecksum(ephemeralKey, FOOTER_CHECKSUM_LENGTH);
+                            //encryptedFileFooter.ChunkCount = SecretBox.Create(encryptedFileFooter.ChunkCount, encryptedFileFooter.FooterNonceCount, ephemeralKey);
+                            //encryptedFileFooter.OverallChunkLength = SecretBox.Create(encryptedFileFooter.OverallChunkLength, encryptedFileFooter.FooterNonceLength, ephemeralKey);
+                            //encryptedFileFooter.FooterChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileFooter.ChunkCount, encryptedFileFooter.OverallChunkLength), ephemeralKey, FOOTER_CHECKSUM_LENGTH);
                             //put the footer to the stream
                             Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileFooter, PrefixStyle.Base128, 3);
                         }
@@ -635,11 +635,10 @@ namespace StreamCryptor
                     encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Base128, 1);
                     //decrypt the ephemeral key with our public box 
                     byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, recipientPrivateKey, encryptedFileHeader.SenderPublicKey);
-                    byte[] headerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileHeader.BaseNonce, Utils.IntegerToLittleEndian(encryptedFileHeader.Version), encryptedFileHeader.Key, BitConverter.GetBytes(encryptedFileHeader.UnencryptedFileLength)), ephemeralKey, HEADER_CHECKSUM_LENGTH);
-                    //check file header
-                    if ((encryptedFileHeader.Version >= MIN_VERSION) &&
-                        (encryptedFileHeader.BaseNonce.Length == CHUNK_BASE_NONCE_LENGTH) &&
-                        (encryptedFileHeader.HeaderChecksum.SequenceEqual(headerChecksum)))
+                    //validate our file header
+                    encryptedFileHeader.ValidateHeaderChecksum(ephemeralKey, HEADER_CHECKSUM_LENGTH);
+                    //check file header for compatibility
+                    if ((encryptedFileHeader.Version >= MIN_VERSION) && (encryptedFileHeader.BaseNonce.Length == CHUNK_BASE_NONCE_LENGTH))
                     {
                         long overallChunkLength = 0;
                         long overallBytesRead = 0;
@@ -715,21 +714,14 @@ namespace StreamCryptor
                         {
                             throw new BadFileFooterException("Missing file footer: file could be damaged or manipulated!");
                         }
-                        byte[] chunkCount = BitConverter.GetBytes(chunkNumber);
-                        byte[] chunkOverallLength = BitConverter.GetBytes(overallChunkLength);
-                        byte[] footerChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(SecretBox.Create(chunkCount, encryptedFileFooter.FooterNonceCount, ephemeralKey), SecretBox.Create(chunkOverallLength, encryptedFileFooter.FooterNonceLength, ephemeralKey)), ephemeralKey, FOOTER_CHECKSUM_LENGTH);
-                        //check the file footer
-                        if (!footerChecksum.SequenceEqual(encryptedFileFooter.FooterChecksum))
-                        {
-                            throw new BadFileFooterException("Malformed file footer: file could be damaged or manipulated!");
-                        }
+                        //validate the footer checksum
+                        encryptedFileFooter.ValidateFooterChecksum(BitConverter.GetBytes(chunkNumber), BitConverter.GetBytes(overallChunkLength), ephemeralKey, FOOTER_CHECKSUM_LENGTH);
                     }
                     else
                     {
-                        throw new BadFileHeaderException("Malformed file header: file could be damaged or manipulated!");
+                        throw new BadFileHeaderException("Incompatible file header: maybe different library version!");
                     }
                     //check the produced output for the correct length
-                    //NOTICE: we also could use a file checksum, but this would lower the speed
                     if (encryptedFileHeader.UnencryptedFileLength == new FileInfo(tmpFullPath).Length)
                     {
                         //check if the new output file already exists
