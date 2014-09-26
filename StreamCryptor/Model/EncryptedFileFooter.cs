@@ -1,6 +1,7 @@
 ﻿using ProtoBuf;
 using Sodium;
 using StreamCryptor.Helper;
+using System;
 using System.Linq;
 
 namespace StreamCryptor.Model
@@ -15,12 +16,12 @@ namespace StreamCryptor.Model
         /// The chunk count of this file.
         /// </summary>
         [ProtoMember(1)]
-        public byte[] ChunkCount { get; set; }
+        private byte[] ChunkCount { get; set; }
         /// <summary>
         /// The length of all chunks.
         /// </summary>
         [ProtoMember(2)]
-        public byte[] OverallChunkLength { get; set; }
+        private byte[] OverallChunkLength { get; set; }
         /// <summary>
         /// The nonce to encrypt and decrypt the OverallChunkLength.
         /// </summary>
@@ -38,23 +39,26 @@ namespace StreamCryptor.Model
         private byte[] FooterChecksum { get; set; }
 
         /// <summary>
-        /// Initialize the EncryptedFileFooter.
+        /// Initialize the EncryptedFileFooter for decryption.
         /// </summary>
-        /// <remarks>Used for decryption.</remarks>
         public EncryptedFileFooter()
         {
             //do nothing
         }
 
         /// <summary>
-        /// Initialize the EncryptedFileFooter with some nonces.
+        /// Initialize the EncryptedFileFooter for encryption.
         /// </summary>
         /// <param name="nonceLength">The length of the footer nonces.</param>
+        /// <param name="chunkNumber">The number of chunks in the file.</param>
+        /// <param name="overallChunkLength">The overall length of the chunks.</param>
         /// <remarks>Used for encryption.</remarks>
-        public EncryptedFileFooter(int nonceLength)
+        public EncryptedFileFooter(int nonceLength, int chunkNumber, long overallChunkLength)
         {
             this.FooterNonceLength = SodiumCore.GetRandomBytes(nonceLength);
             this.FooterNonceCount = SodiumCore.GetRandomBytes(nonceLength);
+            this.ChunkCount = BitConverter.GetBytes(chunkNumber);
+            this.OverallChunkLength = BitConverter.GetBytes(overallChunkLength);
         }
 
         /// <summary>

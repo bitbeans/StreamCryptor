@@ -458,51 +458,32 @@ namespace StreamCryptor
                 outputFile = inputFileInfo.Name + fileExtension;
                 outputFullPath = Path.Combine(outputFolder, outputFile);
             }
-            //prepare our file header
-            EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
             //go for the streams
             using (FileStream fileStreamEncrypted = File.OpenWrite(outputFullPath))
             {
                 using (FileStream fileStreamUnencrypted = File.OpenRead(inputFile))
                 {
-                    //get some ephemeral key fot this file
-                    byte[] ephemeralKey = SecretBox.GenerateKey();
-                    //generate a nonce for the encrypted ephemeral key
-                    byte[] ephemeralNonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
-                    encryptedFileHeader.EphemeralNonce = ephemeralNonce;
-                    //encrypt the ephemeral key with our public box 
-                    byte[] encryptedEphemeralKey = Sodium.PublicKeyBox.Create(ephemeralKey, ephemeralNonce, senderPrivateKey, recipientPublicKey);
-                    long fileLength = fileStreamUnencrypted.Length;
-                    //set some things to the file header
-                    encryptedFileHeader.UnencryptedFileLength = fileLength;
-                    //set the senders public key to the header, to guarantee the recipient can decrypt it
-                    encryptedFileHeader.SenderPublicKey = senderPublicKey;
-                    //currently unsued
-                    encryptedFileHeader.Version = CURRENT_VERSION;
-                    //a random base nonce (16 byte), which will be filled up to 24 byte in every chunk
-                    encryptedFileHeader.BaseNonce = SodiumCore.GetRandomBytes(CHUNK_BASE_NONCE_LENGTH);
-                    //encryptedEphemeral
-                    encryptedFileHeader.Key = encryptedEphemeralKey;
+                    //initialize our file header for encryption
+                    EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader(
+                        CURRENT_VERSION, NONCE_LENGTH, CHUNK_BASE_NONCE_LENGTH, fileStreamUnencrypted.Length, 
+                        senderPrivateKey, senderPublicKey, recipientPublicKey);
                     //generate and set the checksum to validate our file header on decryption
-                    encryptedFileHeader.SetHeaderChecksum(ephemeralKey, HEADER_CHECKSUM_LENGTH);
-                    //encrypt the file name in the header
-                    byte[] fileNameNonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
-                    encryptedFileHeader.FilenameNonce = fileNameNonce;
-                    //fill up the filename to 256 bytes
-                    byte[] paddedFileName = Helper.Utils.StringToPaddedByteArray(inputFileInfo.Name, MAX_FILENAME_LENGTH);
-                    encryptedFileHeader.Filename = SecretBox.Create(paddedFileName, fileNameNonce, ephemeralKey);
-                    //write the file header
+                    encryptedFileHeader.SetHeaderChecksum(HEADER_CHECKSUM_LENGTH);
+                    //protect and set the file name to the header
+                    encryptedFileHeader.ProtectFileName(inputFileInfo.Name, MAX_FILENAME_LENGTH);
+                    //write the file header to the stream
                     Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileHeader, PrefixStyle.Base128, 1);
                     //we start at chunk number 0
                     int chunkNumber = CHUNK_COUNT_START;
                     //used to calculate the footer checksum
                     long overallChunkLength = 0;
-                    //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
-                    byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
-                    int bytesRead;
+                    //used for progress reporting
                     long overallBytesRead = 0;
+                    int bytesRead;
                     do
                     {
+                        //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
+                        byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
                         bytesRead = await fileStreamUnencrypted.ReadAsync(unencryptedChunk, 0, CHUNK_LENGTH);
                         //check if there is still some work
                         if (bytesRead != 0)
@@ -513,10 +494,10 @@ namespace StreamCryptor
                             //cut unreaded bytes
                             Array.Copy(unencryptedChunk, readedBytes, bytesRead);
                             //check if the file is smaller or equal the CHUNK_LENGTH
-                            if (fileLength <= CHUNK_LENGTH)
+                            if (encryptedFileHeader.UnencryptedFileLength <= CHUNK_LENGTH)
                             {
                                 //so we have the one and only chunk
-                                encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, ephemeralKey, true);
+                                encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, encryptedFileHeader.UnencryptedEphemeralKey, true);
                             }
                             else
                             {
@@ -524,12 +505,12 @@ namespace StreamCryptor
                                 if (bytesRead < CHUNK_LENGTH)
                                 {
                                     //it`s the last chunk in the stream
-                                    encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, ephemeralKey, true);
+                                    encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, encryptedFileHeader.UnencryptedEphemeralKey, true);
                                 }
                                 else
                                 {
                                     //it`s a full chunk
-                                    encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, ephemeralKey, false);
+                                    encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, encryptedFileHeader.UnencryptedEphemeralKey, false);
                                 }
                             }
                             overallChunkLength += encryptedFileChunk.Chunk.Length;
@@ -548,13 +529,10 @@ namespace StreamCryptor
                         }
                         else
                         {
-                            //Prepare the EncryptedFileFooter
-                            EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter(NONCE_LENGTH);
-                            //Encrypt the footer data
-                            encryptedFileFooter.ChunkCount = BitConverter.GetBytes(chunkNumber);
-                            encryptedFileFooter.OverallChunkLength = BitConverter.GetBytes(overallChunkLength);
+                            //Prepare the EncryptedFileFooter for encryption.
+                            EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter(NONCE_LENGTH, chunkNumber, overallChunkLength);
                             //generate the FooterChecksum
-                            encryptedFileFooter.SetFooterChecksum(ephemeralKey, FOOTER_CHECKSUM_LENGTH);
+                            encryptedFileFooter.SetFooterChecksum(encryptedFileHeader.UnencryptedEphemeralKey, FOOTER_CHECKSUM_LENGTH);
                             //put the footer to the stream
                             Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileFooter, PrefixStyle.Base128, 3);
                         }
@@ -657,7 +635,7 @@ namespace StreamCryptor
                         long overallChunkLength = 0;
                         long overallBytesRead = 0;
                         //restore the original file name
-                        byte[] encryptedPaddedFileName = encryptedFileHeader.Filename = SecretBox.Open(encryptedFileHeader.Filename, encryptedFileHeader.FilenameNonce, ephemeralKey); ;
+                        byte[] encryptedPaddedFileName = SecretBox.Open(encryptedFileHeader.Filename, encryptedFileHeader.FilenameNonce, ephemeralKey); ;
                         //remove the padding
                         outputFile = Helper.Utils.PaddedByteArrayToString(encryptedPaddedFileName);
                         outputFullPath = Path.Combine(outputFolder, outputFile);
