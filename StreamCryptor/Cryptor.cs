@@ -65,6 +65,39 @@ namespace StreamCryptor
         }
 
         /// <summary>
+        /// Encrypts a file chunk.
+        /// </summary>
+        /// <param name="unencryptedChunk">The bytes to encrypt.</param>
+        /// <param name="chunkNumber">The current chunk number.</param>
+        /// <param name="baseNonce">The base nonce.</param>
+        /// <param name="ephemeralKey">The generated ephemeral key.</param>
+        /// <param name="isLast">last chunk in the row.</param>
+        /// <returns>An EncryptedFileChunk.</returns>
+        private static EncryptedFileChunk EncryptFileChunk(byte[] unencryptedChunk, int chunkNumber, byte[] baseNonce, byte[] ephemeralKey, bool isLast)
+        {
+            //prepare the EncryptedFileChunk
+            EncryptedFileChunk encryptedFileChunk = new EncryptedFileChunk();
+            byte[] chunkNonce = new byte[NONCE_LENGTH];
+            //generate the chunk nonce
+            chunkNonce = GetChunkNonce(baseNonce, chunkNumber, isLast);
+            //is it the last chunk?
+            encryptedFileChunk.ChunkIsLast = isLast;
+            //we also set the current chunk number to validate the nonce later
+            encryptedFileChunk.ChunkNumber = chunkNumber;
+            //set the chunk nonce (it containes the chunkNumber too)
+            encryptedFileChunk.ChunkNonce = chunkNonce;
+            //sym encrypt the chunk 
+            byte[] encryptedChunk = SecretBox.Create(unencryptedChunk, chunkNonce, ephemeralKey);
+            //set the encrypted chunk
+            encryptedFileChunk.Chunk = encryptedChunk;
+            //and also the length of it
+            encryptedFileChunk.ChunkLength = encryptedChunk.Length;
+            //generate a 64 byte checksum for this chunk
+            encryptedFileChunk.ChunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedChunk, Utils.IntegerToLittleEndian(encryptedChunk.Length), chunkNonce), ephemeralKey, CHUNK_CHECKSUM_LENGTH);
+            return encryptedFileChunk;
+        }
+
+        /// <summary>
         /// Checks a keypair for the right length.
         /// </summary>
         /// <param name="keyPair">A keypair to validate.</param>
@@ -455,15 +488,14 @@ namespace StreamCryptor
                     //encrypt the file name in the header
                     byte[] fileNameNonce = Sodium.SodiumCore.GetRandomBytes(NONCE_LENGTH);
                     encryptedFileHeader.FilenameNonce = fileNameNonce;
-                    //get the filename to 256 bytes
+                    //fill up the filename to 256 bytes
                     byte[] paddedFileName = Helper.Utils.StringToPaddedByteArray(inputFileInfo.Name, MAX_FILENAME_LENGTH);
                     encryptedFileHeader.Filename = SecretBox.Create(paddedFileName, fileNameNonce, ephemeralKey);
                     //write the file header
                     Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileHeader, PrefixStyle.Base128, 1);
                     //we start at chunk number 0
                     int chunkNumber = CHUNK_COUNT_START;
-                    //Prepare the EncryptedFileFooter
-                    EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter(NONCE_LENGTH);
+                    //used to calculate the footer checksum
                     long overallChunkLength = 0;
                     //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
                     byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
@@ -471,7 +503,6 @@ namespace StreamCryptor
                     long overallBytesRead = 0;
                     do
                     {
-                        byte[] chunkNonce = new byte[NONCE_LENGTH];
                         bytesRead = await fileStreamUnencrypted.ReadAsync(unencryptedChunk, 0, CHUNK_LENGTH);
                         //check if there is still some work
                         if (bytesRead != 0)
@@ -485,8 +516,7 @@ namespace StreamCryptor
                             if (fileLength <= CHUNK_LENGTH)
                             {
                                 //so we have the one and only chunk
-                                chunkNonce = GetChunkNonce(encryptedFileHeader.BaseNonce, chunkNumber, true);
-                                encryptedFileChunk.ChunkIsLast = true;
+                                encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, ephemeralKey, true);
                             }
                             else
                             {
@@ -494,30 +524,15 @@ namespace StreamCryptor
                                 if (bytesRead < CHUNK_LENGTH)
                                 {
                                     //it`s the last chunk in the stream
-                                    chunkNonce = GetChunkNonce(encryptedFileHeader.BaseNonce, chunkNumber, true);
-                                    encryptedFileChunk.ChunkIsLast = true;
+                                    encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, ephemeralKey, true);
                                 }
                                 else
                                 {
                                     //it`s a full chunk
-                                    chunkNonce = GetChunkNonce(encryptedFileHeader.BaseNonce, chunkNumber, false);
-                                    encryptedFileChunk.ChunkIsLast = false;
+                                    encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, ephemeralKey, false);
                                 }
                             }
-                            //we also set the current chunk number to validate the nonce later
-                            encryptedFileChunk.ChunkNumber = chunkNumber;
-                            //set the chunk nonce (it containes the chunkNumber too)
-                            encryptedFileChunk.ChunkNonce = chunkNonce;
-                            //sym encrypt the chunk 
-                            byte[] encryptedChunk = SecretBox.Create(readedBytes, chunkNonce, ephemeralKey);
-                            //set the encrypted chunk
-                            encryptedFileChunk.Chunk = encryptedChunk;
-                            //and also the length of it
-                            encryptedFileChunk.ChunkLength = encryptedChunk.Length;
-                            //increment the OverallChunkLength
-                            overallChunkLength += encryptedChunk.Length;
-                            //generate a 64 byte checksum for this chunk
-                            encryptedFileChunk.ChunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedChunk, Utils.IntegerToLittleEndian(encryptedChunk.Length), chunkNonce), ephemeralKey, CHUNK_CHECKSUM_LENGTH);
+                            overallChunkLength += encryptedFileChunk.Chunk.Length;
                             //write encryptedFileChunk to the output stream
                             Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileChunk, PrefixStyle.Base128, 2);
                             //increment for the next chunk
@@ -533,14 +548,13 @@ namespace StreamCryptor
                         }
                         else
                         {
+                            //Prepare the EncryptedFileFooter
+                            EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter(NONCE_LENGTH);
                             //Encrypt the footer data
                             encryptedFileFooter.ChunkCount = BitConverter.GetBytes(chunkNumber);
                             encryptedFileFooter.OverallChunkLength = BitConverter.GetBytes(overallChunkLength);
                             //generate the FooterChecksum
                             encryptedFileFooter.SetFooterChecksum(ephemeralKey, FOOTER_CHECKSUM_LENGTH);
-                            //encryptedFileFooter.ChunkCount = SecretBox.Create(encryptedFileFooter.ChunkCount, encryptedFileFooter.FooterNonceCount, ephemeralKey);
-                            //encryptedFileFooter.OverallChunkLength = SecretBox.Create(encryptedFileFooter.OverallChunkLength, encryptedFileFooter.FooterNonceLength, ephemeralKey);
-                            //encryptedFileFooter.FooterChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileFooter.ChunkCount, encryptedFileFooter.OverallChunkLength), ephemeralKey, FOOTER_CHECKSUM_LENGTH);
                             //put the footer to the stream
                             Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileFooter, PrefixStyle.Base128, 3);
                         }

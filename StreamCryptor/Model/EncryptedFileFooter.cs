@@ -37,11 +37,20 @@ namespace StreamCryptor.Model
         [ProtoMember(5)]
         private byte[] FooterChecksum { get; set; }
 
+        /// <summary>
+        /// Initialize the EncryptedFileFooter.
+        /// </summary>
+        /// <remarks>Used for decryption.</remarks>
         public EncryptedFileFooter()
         {
             //do nothing
         }
 
+        /// <summary>
+        /// Initialize the EncryptedFileFooter with some nonces.
+        /// </summary>
+        /// <param name="nonceLength">The length of the footer nonces.</param>
+        /// <remarks>Used for encryption.</remarks>
         public EncryptedFileFooter(int nonceLength)
         {
             this.FooterNonceLength = SodiumCore.GetRandomBytes(nonceLength);
