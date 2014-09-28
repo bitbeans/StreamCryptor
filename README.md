@@ -1,9 +1,9 @@
 # StreamCryptor [![Build status](https://ci.appveyor.com/api/projects/status/73fb5hecxx9xjyip)](https://ci.appveyor.com/project/bitbeans/streamcryptor) [![Build Status](https://travis-ci.org/bitbeans/StreamCryptor.svg?branch=master)](https://travis-ci.org/bitbeans/StreamCryptor)
 You can use StreamCryptor to encrypt and decrypt files without size limit and the need to load every file completely into memory.
-StreamCryptor uses `FileStream` to read and write files in chunks, there is also an asynchronous implementations for progress reporting available: [example](../blob/master/examples/DemoAsync.md). 
+StreamCryptor uses `FileStream` to read and write files in chunks, there is also an asynchronous implementations for progress reporting available: [example](../master/examples/DemoAsync.md). 
 
 Every file contains a `EncryptedFileHeader` some `EncryptedFileChunks` and an `EncryptedFileFooter`.
-Files are encrypted into [SCCEF](https://github.com/bitbeans/StreamCryptor#SCCEF-file-format) (StreamCryptor Chunked Encrypted File) format.
+Files are encrypted into [SCCEF](https://github.com/bitbeans/StreamCryptor#sccef-file-format) (StreamCryptor Chunked Encrypted File) format.
 
 The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
 All cryptographic operations are performed via [libsodium-net](https://github.com/adamcaudill/libsodium-net) and thus [libsodium](https://github.com/jedisct1/libsodium)), see [Algorithm details](https://github.com/bitbeans/StreamCryptor#algorithm-details).
