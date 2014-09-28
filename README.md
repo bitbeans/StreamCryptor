@@ -1,7 +1,14 @@
 # StreamCryptor [![Build status](https://ci.appveyor.com/api/projects/status/73fb5hecxx9xjyip)](https://ci.appveyor.com/project/bitbeans/streamcryptor) [![Build Status](https://travis-ci.org/bitbeans/StreamCryptor.svg?branch=master)](https://travis-ci.org/bitbeans/StreamCryptor)
-StreamCryptor uses `FileStream` to encrypt and decrypt files in chunks. Every file contains a `EncryptedFileHeader` some `EncryptedFileChunks` and an `EncryptedFileFooter`. The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
+You can use StreamCryptor to encrypt and decrypt files without size limit and the need to load every file completely into memory.
+StreamCryptor uses `FileStream` to read and write files in chunks, there is also an asynchronous implementations for progress reporting available: [example](../blob/master/examples/DemoAsync.md). 
 
-All cryptographic operations are performed via [libsodium](https://github.com/jedisct1/libsodium).
+Every file contains a `EncryptedFileHeader` some `EncryptedFileChunks` and an `EncryptedFileFooter`.
+Files are encrypted into [SCCEF](https://github.com/bitbeans/StreamCryptor#SCCEF-file-format) (StreamCryptor Chunked Encrypted File) format.
+
+The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
+All cryptographic operations are performed via [libsodium-net](https://github.com/adamcaudill/libsodium-net) and thus [libsodium](https://github.com/jedisct1/libsodium)), see [Algorithm details](https://github.com/bitbeans/StreamCryptor#algorithm-details).
+
+To protect the senders PublicKey from beeing tracked, you should use an ephemeral key pair for every file. If you do this it isn't possible to authenticate who encrypted the file!
 
 ## Status
 
@@ -9,11 +16,11 @@ All cryptographic operations are performed via [libsodium](https://github.com/je
 
 :facepunch: Don`t use this code in a live project!
 
-:bug: It could contain bugs.
+:bug: It still could contain bugs.
 
 ## Installation
 
-**Windows**: there is now a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) available.
+There is a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) available.
 
 ## This project uses the following libraries
 
@@ -23,6 +30,38 @@ All cryptographic operations are performed via [libsodium](https://github.com/je
 
 [libsodium-net]:https://github.com/adamcaudill/libsodium-net
 [protobuf-net]:https://code.google.com/p/protobuf-net/
+
+## Requirements
+
+This library targets **.NET 4.5**.
+
+## SCCEF file format
+
+### EncryptedFileHeader
+- `Version` - Used to indicate the message format. Current version is 1.
+- `BaseNonce` - The 16 bytes, randomly generated nonce used to generate the chunk nonces.
+- `EphemeralNonce` - The 24 byte nonce for the ephemeral secret key.
+- `Key` - The encrypted 32 byte ephemeral secret key to encrypt and decrypt the chunks.
+- `HeaderChecksum` - The header checksum to validate the header and prevent file manipulation.
+- `Filename` - The encrypted original filename, padded to 256 bytes.
+- `FilenameNonce` -  The 24 byte nonce to encrypt the filename.
+- `SenderPublicKey` - The 32 byte public key of the sender to guarantee the recipient can decrypt the file.
+- `UnencryptedFileLength` - The file length of the unencrypted file.
+
+### EncryptedFileChunk
+- `ChunkNumber` - Chunk number, starting at 0.
+- `ChunkNonce` - Combined chunk nonce (16 byte BaseNonce from the header || 8 byte ChunkNumber)
+- `ChunkLength` - The length of the chunk in bytes.
+- `ChunkIsLast` - Marks the chunk as last in the file (there only can be one last chunk per file).
+- `ChunkChecksum` - The checksum to validate the chunk and prevent file manipulation.
+- `Chunk` - The encrypted chunk content.
+
+### EncryptedFileFooter
+- `ChunkCount` - The encrypted number of chunks in the file.
+- `OverallChunkLength` - The encrypted overall length of all chunks in bytes.
+- `FooterNonceLength` - The 24 byte nonce to encrypt and decrypt the ChunkCount.
+- `FooterNonceCount` - The 24 byte nonce to encrypt and decrypt the OverallChunkLength.
+- `FooterChecksum` - The footer checksum to validate the footer and prevent file manipulation.
 
 ## Usage
 

@@ -19,7 +19,7 @@ namespace StreamCryptor.Model
         [ProtoMember(2)]
         public byte[] ChunkNonce { get; set; }
         /// <summary>
-        /// The length of the current chnunk in bytes.
+        /// The length of the current chunk in bytes.
         /// </summary>
         [ProtoMember(3)]
         public int ChunkLength { get; set; }

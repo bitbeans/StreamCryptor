@@ -2,17 +2,29 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.2.2-beta</version>
+        <version>0.2.4-beta</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
         <projectUrl>https://github.com/bitbeans/StreamCryptor</projectUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
-        <description>StreamCryptor uses FileStream to encrypt and decrypt files in chunks. Every file contains a EncryptedFileHeader some EncryptedFileChunks and an EncryptedFileFooter. The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
+        <description>You can use StreamCryptor to encrypt and decrypt files without size limit and the need to load every file completely into memory.
 
-All cryptographic operations are performed via libsodium.</description>
-        <summary>Stream encryption &amp; decryption with libsodium and protbuf-net</summary>
-        <releaseNotes>0.2.2
+StreamCryptor uses FileStream to read and write files in chunks, there is also an asynchronous implementations for progress reporting available. 
+
+Every file contains a EncryptedFileHeader some EncryptedFileChunks and an EncryptedFileFooter.
+Files are encrypted into SCCEF (StreamCryptor Chunked Encrypted File) format.
+
+The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
+
+All cryptographic operations are performed via libsodium-net (and thus libsodium).
+
+For more details visit the project site.</description>
+        <summary>Stream encryption &amp; decryption with libsodium and protobuf</summary>
+        <releaseNotes>0.2.4
+* Code improvements
+* Updated libsodium to 0.6.0-beta2
+0.2.2
 * Changed Namespace to Cryptor
 * Code improvements
 0.2.1
