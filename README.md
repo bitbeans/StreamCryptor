@@ -14,10 +14,6 @@ To protect the senders PublicKey from beeing tracked, you should use an ephemera
 
 > Project is currently under development!
 
-:facepunch: Don`t use this code in a live project!
-
-:bug: It still could contain bugs.
-
 ## Installation
 
 There is a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) available.
@@ -115,10 +111,14 @@ public static async Task<string> DecryptFileWithStreamAsync(byte[] recipientPriv
 public static async Task<string> DecryptFileWithStream(KeyPair keyPair, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
 ```
 
-The current implementation of the **Asynchronous Methods** could be run more smoothly (i`am working on this). :v:
-The Problem is, neither libsodium-net nor protobuf-net has an async model.
-
 Some example code [AsyncDemo](examples/DemoAsync.md)
+
+#### Decrypt a file into memory
+```csharp
+//Method to decrypt a file and return it as DecryptedFile object
+[Obsolete("Experimental")]
+public static async Task<DecryptedFile> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
+```
 
 ### And some fixed parameters
 ```csharp
@@ -160,12 +160,9 @@ The produced overhead of the encrypted files:
 
 |             | Using      | libsodium     | 
 | :----------------------- | :-----------: | :-----------: | :-----------: |
-| **Hashing (checksums)**    | Blake2b        |[documentation](http://doc.libsodium.org/hashing/generic_hashing.html) | 
-| **Secret-key authenticated encryption**     | XSalsa20/Poly1305 MAC        | [documentation](http://doc.libsodium.org/secret-key_cryptography/authenticated_encryption.html)       | 
-| **Public-key authenticated encryption**    | XSalsa20/Poly1305 MAC/Curve25519        | [documentation](http://doc.libsodium.org/public-key_cryptography/authenticated_encryption.html)        |
-
-## Help wanted
-See https://github.com/bitbeans/StreamCryptor/issues/3
+| **Hashing (checksums)**    | Blake2b        |[documentation](http://bitbeans.gitbooks.io/libsodium-net/content/hashing/generic_hashing.html) | 
+| **Secret-key authenticated encryption**     | XSalsa20/Poly1305 MAC        | [documentation](http://bitbeans.gitbooks.io/libsodium-net/content/secret-key_cryptography/authenticated_encryption.html)       | 
+| **Public-key authenticated encryption**    | XSalsa20/Poly1305 MAC/Curve25519        | [documentation](http://bitbeans.gitbooks.io/libsodium-net/content/public-key_cryptography/authenticated_encryption.html)        |
 
 ## Why
 Inspired by https://github.com/jedisct1/libsodium/issues/141 and the [nacl-stream-js](https://github.com/dchest/nacl-stream-js) project.

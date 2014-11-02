@@ -63,6 +63,7 @@
     <Compile Include="Exception\BadFileHeaderException.cs" />
     <Compile Include="Helper\ArrayHelpers.cs" />
     <Compile Include="Helper\Utils.cs" />
+    <Compile Include="Model\DecryptedFile.cs" />
     <Compile Include="Model\EncryptedFileChunk.cs" />
     <Compile Include="Model\EncryptedFileFooter.cs" />
     <Compile Include="Model\EncryptedFileHeader.cs" />

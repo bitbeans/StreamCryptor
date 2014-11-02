@@ -750,5 +750,154 @@ namespace StreamCryptor
             return outputFile;
         }
         #endregion
+
+        #region Hold in memory methods
+        /// <summary>
+        /// Decrypts a file asynchron with libsodium and protobuf-net.
+        /// </summary>
+        /// <param name="recipientPrivateKey">A 32 byte private key.</param>
+        /// <param name="inputFile">An encrypted file.</param>
+        /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
+        /// <returns>A DecryptedFile object.</returns>
+        /// <remarks>This method is marked as obsolete/experimental because it can throw an OutOfMemoryException when there is not enough ram to hold the DecryptedFile.</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="BadLastFileChunkException"></exception>
+        /// <exception cref="BadFileChunkException"></exception>
+        /// <exception cref="BadFileFooterException"></exception>
+        /// <exception cref="BadFileHeaderException"></exception>
+        /// <exception cref="IOException"></exception>
+        [Obsolete("Experimental")]
+        public static async Task<DecryptedFile> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
+        {
+            DecryptedFile decryptedFile = new DecryptedFile();
+            try
+            {
+                //validate the recipientPrivateKey
+                if (recipientPrivateKey == null || recipientPrivateKey.Length != ASYNC_KEY_LENGTH)
+                {
+                    throw new ArgumentOutOfRangeException("recipientPrivateKey", "invalid recipientPrivateKey");
+                }
+                //validate the inputFile
+                if (string.IsNullOrEmpty(inputFile))
+                {
+                    throw new ArgumentOutOfRangeException("inputFile", (inputFile == null) ? 0 : inputFile.Length,
+                      string.Format("inputFile must be greater {0} in length.", 0));
+                }
+                if (!File.Exists(inputFile))
+                {
+                    throw new FileNotFoundException("inputFile", "inputFile could not be found.");
+                }
+
+                using (FileStream fileStreamEncrypted = File.OpenRead(inputFile))
+                {
+                    //first read the file header
+                    EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
+                    encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Base128, 1);
+                    //decrypt the ephemeral key with our public box 
+                    byte[] ephemeralKey = Sodium.PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, recipientPrivateKey, encryptedFileHeader.SenderPublicKey);
+                    //validate our file header
+                    encryptedFileHeader.ValidateHeaderChecksum(ephemeralKey, HEADER_CHECKSUM_LENGTH);
+                    //check file header for compatibility
+                    if ((encryptedFileHeader.Version >= MIN_VERSION) && (encryptedFileHeader.BaseNonce.Length == CHUNK_BASE_NONCE_LENGTH))
+                    {
+                        long overallChunkLength = 0;
+                        long overallBytesRead = 0;
+                        //restore the original file name
+                        byte[] encryptedPaddedFileName = SecretBox.Open(encryptedFileHeader.Filename, encryptedFileHeader.FilenameNonce, ephemeralKey); ;
+                        //remove the padding
+                        decryptedFile.FileName = Helper.Utils.PaddedByteArrayToString(encryptedPaddedFileName);
+                        //keep the position for the footer
+                        long fileStreamEncryptedPosition = 0;
+                        int chunkNumber = CHUNK_COUNT_START;
+                        //write the file to the tmpFullPath
+                        using (MemoryStream fileStreamUnencrypted = new MemoryStream())
+                        {
+                            //start reading the chunks
+                            EncryptedFileChunk encryptedFileChunk = new EncryptedFileChunk();
+                            while ((encryptedFileChunk = Serializer.DeserializeWithLengthPrefix<EncryptedFileChunk>(fileStreamEncrypted, PrefixStyle.Base128, 2)) != null)
+                            {
+                                //indicates if ChunkIsLast was found, to prepend more than one last chnunks.
+                                bool isLastChunkFound = false;
+                                byte[] chunkNonce = new byte[NONCE_LENGTH];
+                                //check if this is the last chunk
+                                if (encryptedFileChunk.ChunkIsLast)
+                                {
+                                    if (!isLastChunkFound)
+                                    {
+                                        //last
+                                        chunkNonce = GetChunkNonce(encryptedFileHeader.BaseNonce, chunkNumber, true);
+                                        isLastChunkFound = true;
+                                    }
+                                    else
+                                    {
+                                        throw new BadLastFileChunkException("there are more than one last chunk, file could be damaged or manipulated!");
+                                    }
+                                }
+                                else
+                                {
+                                    //there will propably come more
+                                    chunkNonce = GetChunkNonce(encryptedFileHeader.BaseNonce, chunkNumber, false);
+                                }
+                                //generate chunk checksum
+                                byte[] chunkChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(encryptedFileChunk.Chunk, Utils.IntegerToLittleEndian(encryptedFileChunk.Chunk.Length), chunkNonce), ephemeralKey, CHUNK_CHECKSUM_LENGTH);
+                                //check the current chunk checksum
+                                if (chunkChecksum.SequenceEqual(encryptedFileChunk.ChunkChecksum))
+                                {
+                                    byte[] decrypted = SecretBox.Open(encryptedFileChunk.Chunk, chunkNonce, ephemeralKey);
+                                    await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length);
+                                    overallBytesRead += (long)decrypted.Length;
+                                }
+                                else
+                                {
+                                    throw new BadFileChunkException("Wrong checksum, file could be damaged or manipulated!");
+                                }
+                                chunkNumber++;
+                                overallChunkLength += encryptedFileChunk.ChunkLength;
+                                fileStreamEncryptedPosition = fileStreamEncrypted.Position;
+                                //report status
+                                if (decryptionProgress != null)
+                                {
+                                    var args = new StreamCryptorTaskAsyncProgress();
+                                    args.ProgressPercentage = (int)(encryptedFileHeader.UnencryptedFileLength <= 0 ? 0 : (100 * overallBytesRead) / encryptedFileHeader.UnencryptedFileLength);
+                                    decryptionProgress.Report(args);
+                                }
+                            }
+                            decryptedFile.FileData = fileStreamUnencrypted.ToArray();
+                            decryptedFile.FileSize = decryptedFile.FileData.Length;
+                        }
+                        //set the last position
+                        fileStreamEncrypted.Position = fileStreamEncryptedPosition;
+                        //prepare the EncryptedFileFooter
+                        EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter();
+                        //get the file footer and validate him
+                        encryptedFileFooter = Serializer.DeserializeWithLengthPrefix<EncryptedFileFooter>(fileStreamEncrypted, PrefixStyle.Base128, 3);
+                        if (encryptedFileFooter == null)
+                        {
+                            throw new BadFileFooterException("Missing file footer: file could be damaged or manipulated!");
+                        }
+                        //validate the footer checksum
+                        encryptedFileFooter.ValidateFooterChecksum(BitConverter.GetBytes(chunkNumber), BitConverter.GetBytes(overallChunkLength), ephemeralKey, FOOTER_CHECKSUM_LENGTH);
+                    }
+                    else
+                    {
+                        throw new BadFileHeaderException("Incompatible file header: maybe different library version!");
+                    }
+                    //check the produced output for the correct length
+                    if (encryptedFileHeader.UnencryptedFileLength != decryptedFile.FileSize)
+                    {
+                        //File is not valid (return null)
+                        decryptedFile = null;
+                    }
+                }
+            }
+            catch (AggregateException ex)
+            {
+                //and throw the exception
+                ExceptionDispatchInfo.Capture(ex).Throw();
+            }
+            return decryptedFile;
+        }
+        #endregion
     }
 }

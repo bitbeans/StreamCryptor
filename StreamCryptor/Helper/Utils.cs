@@ -45,6 +45,27 @@ namespace StreamCryptor.Helper
         }
 
         /// <summary>
+        /// Returns a SHA256 byte[] checksum.
+        /// </summary>
+        /// <param name="path">The full path.</param>
+        /// <returns>SHA256 checksum without hyphens.</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static string GetChecksum(byte[] array)
+        {
+            if (array == null)
+                throw new ArgumentNullException("array", "array can not be null");
+
+            string checksum = "";
+            using (System.IO.MemoryStream stream = new System.IO.MemoryStream(array))
+            {
+                System.Security.Cryptography.SHA256Managed sha = new System.Security.Cryptography.SHA256Managed();
+                byte[] bytes = sha.ComputeHash(stream);
+                checksum = BitConverter.ToString(bytes).Replace("-", String.Empty);
+            }
+            return checksum;
+        }
+
+        /// <summary>
         /// Generates random number.
         /// </summary>
         /// <param name="maxNumber">The max number.</param>

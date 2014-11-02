@@ -77,6 +77,37 @@ namespace Tests
         }
 
         /// <summary>
+        /// Self encrypt and decrypt as byte array an image file async.
+        ///</summary>
+        [Test]
+        public async void WorkWithImageFileByteArrayTestAsync()
+        {
+            var progressEncrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            var progressDecrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            progressEncrypt.ProgressChanged += (s, e) =>
+            {
+                Console.WriteLine("Encrypting: " + e.ProgressPercentage + "%\n");
+            };
+            progressDecrypt.ProgressChanged += (s, e) =>
+            {
+                Console.WriteLine("Decrypting: " + e.ProgressPercentage + "%\n");
+            };
+            string RAW_FILE = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
+            string OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
+            const string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+            const string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+            var keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
+            Console.Write("Encrypting testfile . . .\n");
+            var encryptedFile = await Cryptor.EncryptFileWithStreamAsync(keyPair.PrivateKey, keyPair.PublicKey, Utilities.HexToBinary(PUBLIC_KEY), RAW_FILE, progressEncrypt, OUTPUT_DIRECTORY, ".test", true);
+            Console.Write("Decrypting testfile . . .\n");
+            var decryptedFileObject = await Cryptor.DecryptFileWithStreamAsync(keyPair.PrivateKey, Path.Combine(OUTPUT_DIRECTORY, encryptedFile), progressDecrypt);
+            Console.Write("Get checksum of testfiles . . .\n");
+            Assert.AreEqual(StreamCryptor.Helper.Utils.GetChecksum(RAW_FILE), StreamCryptor.Helper.Utils.GetChecksum(decryptedFileObject.FileData));
+            //clear garbage 
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
+        }
+
+        /// <summary>
         /// Encrypt and decrypt an image file async for external.
         ///</summary>
         [Test]
