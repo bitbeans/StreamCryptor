@@ -753,13 +753,13 @@ namespace StreamCryptor
 
         #region Hold in memory methods
         /// <summary>
-        /// Decrypts a file asynchron with libsodium and protobuf-net.
+        /// Decrypts a file asynchron into memory with libsodium and protobuf-net.
         /// </summary>
-        /// <param name="recipientPrivateKey">A 32 byte private key.</param>
+        /// <param name="keyPair">The KeyPair to decrypt the ephemeralKey.</param>
         /// <param name="inputFile">An encrypted file.</param>
         /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
         /// <returns>A DecryptedFile object.</returns>
-        /// <remarks>This method is marked as obsolete/experimental because it can throw an OutOfMemoryException when there is not enough ram to hold the DecryptedFile.</remarks>
+        /// <remarks>This method can throw an OutOfMemoryException when there is not enough ram to hold the DecryptedFile!</remarks>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="BadLastFileChunkException"></exception>
@@ -767,6 +767,34 @@ namespace StreamCryptor
         /// <exception cref="BadFileFooterException"></exception>
         /// <exception cref="BadFileHeaderException"></exception>
         /// <exception cref="IOException"></exception>
+        /// <exception cref="OutOfMemoryException"></exception>
+        [Obsolete("Experimental")]
+        public static async Task<DecryptedFile> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
+        {
+            //validate the keyPair
+            if (!ValidateKeyPair(keyPair))
+            {
+                throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
+            }
+            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, decryptionProgress);
+        }
+
+        /// <summary>
+        /// Decrypts a file asynchron into memory with libsodium and protobuf-net.
+        /// </summary>
+        /// <param name="recipientPrivateKey">A 32 byte private key.</param>
+        /// <param name="inputFile">An encrypted file.</param>
+        /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
+        /// <returns>A DecryptedFile object.</returns>
+        /// <remarks>This method can throw an OutOfMemoryException when there is not enough ram to hold the DecryptedFile!</remarks>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="FileNotFoundException"></exception>
+        /// <exception cref="BadLastFileChunkException"></exception>
+        /// <exception cref="BadFileChunkException"></exception>
+        /// <exception cref="BadFileFooterException"></exception>
+        /// <exception cref="BadFileHeaderException"></exception>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="OutOfMemoryException"></exception>
         [Obsolete("Experimental")]
         public static async Task<DecryptedFile> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
         {

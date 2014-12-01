@@ -120,6 +120,12 @@ Some example code [AsyncDemo](examples/DemoAsync.md)
 public static async Task<DecryptedFile> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
 ```
 
+```csharp
+//overloaded version (keyPair.PublicKey will be ignored)
+[Obsolete("Experimental")]
+public static async Task<DecryptedFile> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
+```
+
 ### And some fixed parameters
 ```csharp
 private const int CURRENT_VERSION = 1;

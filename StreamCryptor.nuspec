@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.3.1-beta</version>
+        <version>0.3.2-beta</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
@@ -21,7 +21,10 @@ All cryptographic operations are performed via libsodium-net (and thus libsodium
 
 For more details visit the project site.</description>
         <summary>Stream encryption &amp; decryption with libsodium and protobuf</summary>
-        <releaseNotes>0.3.1
+        <releaseNotes>0.3.2
+* Updated libsodium to 0.7.0-beta1 (thread-safe version)
+* Added overloaded method to decrypt into memory (experimental)
+0.3.1
 * Added method to decrypt into memory (experimental)
 0.3.0
 * Updated libsodium to 0.6.0 (stable)
@@ -50,11 +53,11 @@ For more details visit the project site.</description>
 * Changed TargetFrameworkVersion from v4.5 to v4.0</releaseNotes>
         <copyright>Copyright (c) 2014 Christian Hermann (bitbeans)</copyright>
         <language>en-US</language>
-        <tags>stream encryption protobuf libsodium</tags>
+        <tags>stream encryption protobuf libsodium XSalsa20 Curve25519 Poly1305</tags>
         <dependencies>
             <group targetFramework=".NETFramework4.5">
                 <dependency id="protobuf-net" version="2.0.0.668" />
-                <dependency id="libsodium-net" version="0.6.0" />
+                <dependency id="libsodium-net" version="0.7.0-beta1" />
             </group>
         </dependencies>
     </metadata>
