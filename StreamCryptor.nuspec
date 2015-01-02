@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.3.2-beta</version>
+        <version>0.3.2-beta2</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
@@ -21,7 +21,9 @@ All cryptographic operations are performed via libsodium-net (and thus libsodium
 
 For more details visit the project site.</description>
         <summary>Stream encryption &amp; decryption with libsodium and protobuf</summary>
-        <releaseNotes>0.3.2
+        <releaseNotes>0.3.2-beta2
+* Updated libsodium to 0.7.0-beta2
+0.3.2
 * Updated libsodium to 0.7.0-beta1 (thread-safe version)
 * Added overloaded method to decrypt into memory (experimental)
 0.3.1
@@ -57,11 +59,11 @@ For more details visit the project site.</description>
         <dependencies>
             <group targetFramework=".NETFramework4.5">
                 <dependency id="protobuf-net" version="2.0.0.668" />
-                <dependency id="libsodium-net" version="0.7.0-beta1" />
+                <dependency id="libsodium-net" version="0.7.0-beta2" />
             </group>
         </dependencies>
     </metadata>
     <files>
-        <file src="..\Documents\Visual Studio 2013\Projects\StreamCryptor\StreamCryptor\bin\Debug\StreamCryptor.dll" target="lib\net45\StreamCryptor.dll" />
+        <file src="StreamCryptor\bin\Debug\StreamCryptor.dll" target="lib\net45\StreamCryptor.dll" />
     </files>
 </package>
