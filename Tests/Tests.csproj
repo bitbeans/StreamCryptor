@@ -54,6 +54,7 @@
     <Compile Include="DecryptExceptionTests.cs" />
     <Compile Include="EncryptExceptionAsyncTests.cs" />
     <Compile Include="EncryptExceptionTests.cs" />
+    <Compile Include="UtilitieTests.cs" />
     <Compile Include="WorkAsyncTest.cs" />
     <Compile Include="WorkTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

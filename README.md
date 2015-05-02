@@ -14,6 +14,7 @@ To protect the senders PublicKey from beeing tracked, you should use an ephemera
 
 > Project is currently under development!
 
+
 ## Installation
 
 There is a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) available.
@@ -25,7 +26,7 @@ There is a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) availa
 
 
 [libsodium-net]:https://github.com/adamcaudill/libsodium-net
-[protobuf-net]:https://code.google.com/p/protobuf-net/
+[protobuf-net]:https://github.com/mgravell/protobuf-net
 
 ## Requirements
 
@@ -116,13 +117,11 @@ Some example code [AsyncDemo](examples/DemoAsync.md)
 #### Decrypt a file into memory
 ```csharp
 //Method to decrypt a file and return it as DecryptedFile object
-[Obsolete("Experimental")]
 public static async Task<DecryptedFile> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
 ```
 
 ```csharp
 //overloaded version (keyPair.PublicKey will be ignored)
-[Obsolete("Experimental")]
 public static async Task<DecryptedFile> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
 ```
 

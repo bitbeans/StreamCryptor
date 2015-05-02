@@ -1,45 +1,21 @@
-﻿using ProtoBuf;
+﻿using System;
+using System.Linq;
+using ProtoBuf;
 using Sodium;
 using StreamCryptor.Helper;
-using System;
-using System.Linq;
 
 namespace StreamCryptor.Model
 {
     /// <summary>
-    /// EncryptedFileFooter for every file.
+    ///     EncryptedFileFooter for every file.
     /// </summary>
     [ProtoContract]
     public class EncryptedFileFooter
     {
-        /// <summary>
-        /// The chunk count of this file.
-        /// </summary>
-        [ProtoMember(1)]
-        private byte[] ChunkCount { get; set; }
-        /// <summary>
-        /// The length of all chunks.
-        /// </summary>
-        [ProtoMember(2)]
-        private byte[] OverallChunkLength { get; set; }
-        /// <summary>
-        /// The nonce to encrypt and decrypt the OverallChunkLength.
-        /// </summary>
-        [ProtoMember(3)]
-        private byte[] FooterNonceLength { get; set; }
-        /// <summary>
-        /// The nonce to encrypt and decrypt the ChunkCount.
-        /// </summary>
-        [ProtoMember(4)]
-        private byte[] FooterNonceCount { get; set; }
-        /// <summary>
-        /// The footer checksum to validate this footer.
-        /// </summary>
-        [ProtoMember(5)]
-        private byte[] FooterChecksum { get; set; }
+        private readonly byte[] _checksumFooterPrefix = {0x02};
 
         /// <summary>
-        /// Initialize the EncryptedFileFooter for decryption.
+        ///     Initialize the EncryptedFileFooter for decryption.
         /// </summary>
         public EncryptedFileFooter()
         {
@@ -47,7 +23,7 @@ namespace StreamCryptor.Model
         }
 
         /// <summary>
-        /// Initialize the EncryptedFileFooter for encryption.
+        ///     Initialize the EncryptedFileFooter for encryption.
         /// </summary>
         /// <param name="nonceLength">The length of the footer nonces.</param>
         /// <param name="chunkNumber">The number of chunks in the file.</param>
@@ -55,44 +31,80 @@ namespace StreamCryptor.Model
         /// <remarks>Used for encryption.</remarks>
         public EncryptedFileFooter(int nonceLength, int chunkNumber, long overallChunkLength)
         {
-            this.FooterNonceLength = SodiumCore.GetRandomBytes(nonceLength);
-            this.FooterNonceCount = SodiumCore.GetRandomBytes(nonceLength);
-            this.ChunkCount = BitConverter.GetBytes(chunkNumber);
-            this.OverallChunkLength = BitConverter.GetBytes(overallChunkLength);
+            FooterNonceLength = SodiumCore.GetRandomBytes(nonceLength);
+            FooterNonceCount = SodiumCore.GetRandomBytes(nonceLength);
+            ChunkCount = BitConverter.GetBytes(chunkNumber);
+            OverallChunkLength = BitConverter.GetBytes(overallChunkLength);
         }
 
         /// <summary>
-        /// Sets the footer checksum.
+        ///     The chunk count of this file.
         /// </summary>
-        /// <param name="ephemeralKey">A 32 byte key.</param>
+        [ProtoMember(1)]
+        private byte[] ChunkCount { get; set; }
+
+        /// <summary>
+        ///     The length of all chunks.
+        /// </summary>
+        [ProtoMember(2)]
+        private byte[] OverallChunkLength { get; set; }
+
+        /// <summary>
+        ///     The nonce to encrypt and decrypt the OverallChunkLength.
+        /// </summary>
+        [ProtoMember(3)]
+        private byte[] FooterNonceLength { get; set; }
+
+        /// <summary>
+        ///     The nonce to encrypt and decrypt the ChunkCount.
+        /// </summary>
+        [ProtoMember(4)]
+        private byte[] FooterNonceCount { get; set; }
+
+        /// <summary>
+        ///     The footer checksum to validate this footer.
+        /// </summary>
+        [ProtoMember(5)]
+        private byte[] FooterChecksum { get; set; }
+
+        /// <summary>
+        ///     Sets the footer checksum.
+        /// </summary>
+        /// <param name="ephemeralKey">A 64 byte key.</param>
         /// <param name="footerChecksumLength">The length of the checksum.</param>
         public void SetFooterChecksum(byte[] ephemeralKey, int footerChecksumLength)
         {
             //protect the ChunkCount
-            this.ChunkCount = SecretBox.Create(this.ChunkCount, this.FooterNonceCount, ephemeralKey);
+            ChunkCount = SecretBox.Create(ChunkCount, FooterNonceCount, Utils.GetEphemeralEncryptionKey(ephemeralKey));
             //protect the OverallChunkLength
-            this.OverallChunkLength = SecretBox.Create(this.OverallChunkLength, this.FooterNonceLength, ephemeralKey);
+            OverallChunkLength = SecretBox.Create(OverallChunkLength, FooterNonceLength,
+                Utils.GetEphemeralEncryptionKey(ephemeralKey));
             //generate and set the Footerchecksum
-            this.FooterChecksum = Sodium.GenericHash.Hash(ArrayHelpers.ConcatArrays(this.ChunkCount, this.OverallChunkLength), ephemeralKey, footerChecksumLength);
+            FooterChecksum = ArrayHelpers.ConcatArrays(_checksumFooterPrefix,
+                GenericHash.Hash(ArrayHelpers.ConcatArrays(ChunkCount, OverallChunkLength),
+                    Utils.GetEphemeralHashKey(ephemeralKey), footerChecksumLength));
         }
 
         /// <summary>
-        /// Validates the footer checksum.
+        ///     Validates the footer checksum.
         /// </summary>
         /// <param name="chunkCount">Number of chunks in the file.</param>
         /// <param name="chunkOverallLength">Length of all chunks in the file.</param>
-        /// <param name="ephemeralKey">A 32 byte key.</param>
+        /// <param name="ephemeralKey">A 64 byte key.</param>
         /// <param name="footerChecksumLength">The length of the checksum.</param>
         /// <exception cref="BadFileFooterException"></exception>
-        public void ValidateFooterChecksum(byte[] chunkCount, byte[] chunkOverallLength, byte[] ephemeralKey, int footerChecksumLength)
+        public void ValidateFooterChecksum(byte[] chunkCount, byte[] chunkOverallLength, byte[] ephemeralKey,
+            int footerChecksumLength)
         {
-            byte[] footerChecksum = Sodium.GenericHash.Hash(
-                ArrayHelpers.ConcatArrays(SecretBox.Create(chunkCount, this.FooterNonceCount, ephemeralKey),
-                SecretBox.Create(chunkOverallLength, this.FooterNonceLength, ephemeralKey)), 
-                ephemeralKey, 
-                footerChecksumLength);
+            var footerChecksum = ArrayHelpers.ConcatArrays(_checksumFooterPrefix, GenericHash.Hash(
+                ArrayHelpers.ConcatArrays(
+                    SecretBox.Create(chunkCount, FooterNonceCount, Utils.GetEphemeralEncryptionKey(ephemeralKey)),
+                    SecretBox.Create(chunkOverallLength, FooterNonceLength,
+                        Utils.GetEphemeralEncryptionKey(ephemeralKey))),
+                Utils.GetEphemeralHashKey(ephemeralKey),
+                footerChecksumLength));
             //check the file footer
-            if (!footerChecksum.SequenceEqual(this.FooterChecksum))
+            if (!footerChecksum.SequenceEqual(FooterChecksum))
             {
                 throw new BadFileFooterException("Malformed file footer: file could be damaged or manipulated!");
             }

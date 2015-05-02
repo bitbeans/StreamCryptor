@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class BadFileHeaderException : System.Exception
+public class BadFileHeaderException : Exception
 {
     public BadFileHeaderException()
     {

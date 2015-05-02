@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class BadLastFileChunkException : System.Exception
+public class BadLastFileChunkException : Exception
 {
     public BadLastFileChunkException()
     {

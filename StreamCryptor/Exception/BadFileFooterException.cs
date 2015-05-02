@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class BadFileFooterException : System.AggregateException 
+public class BadFileFooterException : AggregateException 
 {
     public BadFileFooterException()
     {
