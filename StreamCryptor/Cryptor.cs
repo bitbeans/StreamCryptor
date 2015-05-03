@@ -82,10 +82,6 @@ namespace StreamCryptor
             chunkNonce = GetChunkNonce(baseNonce, chunkNumber, isLast);
             //is it the last chunk?
             encryptedFileChunk.ChunkIsLast = isLast;
-            //we also set the current chunk number to validate the nonce later
-            //encryptedFileChunk.ChunkNumber = chunkNumber;
-            //set the chunk nonce (it containes the chunkNumber too)
-            //encryptedFileChunk.ChunkNonce = chunkNonce;
             //sym encrypt the chunk 
             byte[] encryptedChunk = SecretBox.Create(unencryptedChunk, chunkNonce, Utils.GetEphemeralEncryptionKey(ephemeralKey));
             //set the encrypted chunk
@@ -530,9 +526,9 @@ namespace StreamCryptor
                         else
                         {
                             //Prepare the EncryptedFileFooter for encryption.
-                            EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter(NONCE_LENGTH, chunkNumber, overallChunkLength);
+                            EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter();
                             //generate the FooterChecksum
-                            encryptedFileFooter.SetFooterChecksum(encryptedFileHeader.UnencryptedEphemeralKey, FOOTER_CHECKSUM_LENGTH);
+                            encryptedFileFooter.SetFooterChecksum(BitConverter.GetBytes(chunkNumber), BitConverter.GetBytes(overallChunkLength), encryptedFileHeader.UnencryptedEphemeralKey, FOOTER_CHECKSUM_LENGTH);
                             //put the footer to the stream
                             Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileFooter, PrefixStyle.Base128, 3);
                         }
