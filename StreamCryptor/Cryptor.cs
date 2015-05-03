@@ -109,11 +109,13 @@ namespace StreamCryptor
         }
 
         #region Synchronous Implementation
+
         /// <summary>
         /// (Self)Encrypts a file with libsodium and protobuf-net.
         /// </summary>
         /// <param name="senderKeyPair">The senders keypair.</param>
         /// <param name="inputFile">The input file.</param>
+        /// <param name="outputFolder">There the encrypted file will be stored, if this is null the input directory is used.</param>
         /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
@@ -131,10 +133,7 @@ namespace StreamCryptor
             try
             {
                 //Call the main method
-                var task = Task.Run(async () =>
-                {
-                    return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, null, outputFolder, fileExtension, maskFileName);
-                });
+                var task = Task.Run(async () => await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, null, outputFolder, fileExtension, maskFileName).ConfigureAwait(false));
                 return task.Result;
             }
             catch (AggregateException ex)
@@ -157,6 +156,7 @@ namespace StreamCryptor
         /// <param name="senderKeyPair">The senders keypair.</param>
         /// <param name="recipientPublicKey">A 32 byte public key.</param>
         /// <param name="inputFile">The input file.</param>
+        /// <param name="outputFolder">There the encrypted file will be stored, if this is null the input directory is used.</param>
         /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
         /// <returns>The name of the encrypted file.</returns>
@@ -174,10 +174,7 @@ namespace StreamCryptor
             try
             {
                 //Call the main method
-                var task = Task.Run(async () =>
-                {
-                    return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, null, outputFolder, fileExtension, maskFileName);
-                });
+                var task = Task.Run(async () => await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, null, outputFolder, fileExtension, maskFileName).ConfigureAwait(false));
                 return task.Result;
             }
             catch (AggregateException ex)
@@ -214,10 +211,7 @@ namespace StreamCryptor
             try
             {
                 //Call the main method
-                var task = Task.Run(async () =>
-                {
-                    return await EncryptFileWithStreamAsync(senderPrivateKey, senderPublicKey, recipientPublicKey, inputFile, null, outputFolder, fileExtension, maskFileName);
-                });
+                var task = Task.Run(async () => await EncryptFileWithStreamAsync(senderPrivateKey, senderPublicKey, recipientPublicKey, inputFile, null, outputFolder, fileExtension, maskFileName).ConfigureAwait(false));
                 return task.Result;
             }
             catch (AggregateException ex)
@@ -261,10 +255,7 @@ namespace StreamCryptor
             try
             {
                 //Call the main method
-                var task = Task.Run(async () =>
-                {
-                    return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, outputFolder, null, overWrite);
-                });
+                var task = Task.Run(async () => await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, outputFolder, null, overWrite).ConfigureAwait(false));
                 return task.Result;
             }
             catch (AggregateException ex)
@@ -303,10 +294,7 @@ namespace StreamCryptor
             try
             {
                 //Call the main method
-                var task = Task.Run(async () =>
-                {
-                    return await DecryptFileWithStreamAsync(recipientPrivateKey, inputFile, outputFolder, null, overWrite);
-                });
+                var task = Task.Run(async () => await DecryptFileWithStreamAsync(recipientPrivateKey, inputFile, outputFolder, null, overWrite).ConfigureAwait(false));
                 return task.Result;
             }
             catch (AggregateException ex)
@@ -346,7 +334,7 @@ namespace StreamCryptor
             {
                 throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
-            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName);
+            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -370,7 +358,7 @@ namespace StreamCryptor
             {
                 throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
-            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName);
+            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -480,7 +468,7 @@ namespace StreamCryptor
                     {
                         //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
                         byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
-                        bytesRead = await fileStreamUnencrypted.ReadAsync(unencryptedChunk, 0, CHUNK_LENGTH);
+                        bytesRead = await fileStreamUnencrypted.ReadAsync(unencryptedChunk, 0, CHUNK_LENGTH).ConfigureAwait(false);
                         //check if there is still some work
                         if (bytesRead != 0)
                         {
@@ -562,7 +550,7 @@ namespace StreamCryptor
             {
                 throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
             }
-            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, outputFolder, decryptionProgress, overWrite);
+            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, outputFolder, decryptionProgress, overWrite).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -682,7 +670,7 @@ namespace StreamCryptor
                                 //check the current chunk checksum
                                 encryptedFileChunk.ValidateChunkChecksum(ephemeralKey, CHUNK_CHECKSUM_LENGTH);
                                 byte[] decrypted = SecretBox.Open(encryptedFileChunk.Chunk, chunkNonce, Utils.GetEphemeralEncryptionKey(ephemeralKey));
-                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length);
+                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length).ConfigureAwait(false);
                                 overallBytesRead += (long)decrypted.Length;
                                 chunkNumber++;
                                 overallChunkLength += encryptedFileChunk.ChunkLength;
@@ -775,7 +763,7 @@ namespace StreamCryptor
             {
                 throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
             }
-            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, decryptionProgress);
+            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, decryptionProgress).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -868,7 +856,7 @@ namespace StreamCryptor
                                 //check the current chunk checksum
                                 encryptedFileChunk.ValidateChunkChecksum(ephemeralKey, CHUNK_CHECKSUM_LENGTH);
                                 byte[] decrypted = SecretBox.Open(encryptedFileChunk.Chunk, chunkNonce, Utils.GetEphemeralEncryptionKey(ephemeralKey));
-                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length);
+                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length).ConfigureAwait(false);
                                 overallBytesRead += (long)decrypted.Length;
                                 chunkNumber++;
                                 overallChunkLength += encryptedFileChunk.ChunkLength;
