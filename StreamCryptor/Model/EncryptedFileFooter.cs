@@ -30,9 +30,9 @@ namespace StreamCryptor.Model
             int footerChecksumLength)
         {
             //generate and set the Footerchecksum
-            FooterChecksum = ArrayHelpers.ConcatArrays(_checksumFooterPrefix,
-                GenericHash.Hash(ArrayHelpers.ConcatArrays(chunkCount, chunkOverallLength),
-                    Utils.GetEphemeralHashKey(ephemeralKey), footerChecksumLength));
+            FooterChecksum = GenericHash.Hash(ArrayHelpers.ConcatArrays(_checksumFooterPrefix,
+                chunkCount, chunkOverallLength),
+                Utils.GetEphemeralHashKey(ephemeralKey), footerChecksumLength);
         }
 
         /// <summary>
@@ -46,10 +46,10 @@ namespace StreamCryptor.Model
         public void ValidateFooterChecksum(byte[] chunkCount, byte[] chunkOverallLength, byte[] ephemeralKey,
             int footerChecksumLength)
         {
-            var footerChecksum = ArrayHelpers.ConcatArrays(_checksumFooterPrefix, GenericHash.Hash(
-                ArrayHelpers.ConcatArrays(chunkCount, chunkOverallLength),
+            var footerChecksum = GenericHash.Hash(
+                ArrayHelpers.ConcatArrays(_checksumFooterPrefix, chunkCount, chunkOverallLength),
                 Utils.GetEphemeralHashKey(ephemeralKey),
-                footerChecksumLength));
+                footerChecksumLength);
             //check the file footer
             if (!footerChecksum.SequenceEqual(FooterChecksum))
             {

@@ -133,14 +133,13 @@ namespace StreamCryptor.Model
         /// <param name="headerChecksumLength">The length of the checksum.</param>
         public void SetHeaderChecksum(int headerChecksumLength)
         {
-            HeaderChecksum = ArrayHelpers.ConcatArrays(_checksumHeaderPrefix,
-                GenericHash.Hash(ArrayHelpers.ConcatArrays(BaseNonce,
-                    FilenameNonce, Filename,
-                    Utils.IntegerToLittleEndian(Version),
-                    Key,
-                    BitConverter.GetBytes(UnencryptedFileLength)),
-                    Utils.GetEphemeralHashKey(UnencryptedEphemeralKey),
-                    headerChecksumLength));
+            HeaderChecksum = GenericHash.Hash(ArrayHelpers.ConcatArrays(_checksumHeaderPrefix, BaseNonce,
+                FilenameNonce, Filename,
+                Utils.IntegerToLittleEndian(Version),
+                Key,
+                BitConverter.GetBytes(UnencryptedFileLength)),
+                Utils.GetEphemeralHashKey(UnencryptedEphemeralKey),
+                headerChecksumLength);
         }
 
         /// <summary>
@@ -151,14 +150,14 @@ namespace StreamCryptor.Model
         /// <exception cref="BadFileHeaderException"></exception>
         public void ValidateHeaderChecksum(byte[] ephemeralKey, int headerChecksumLength)
         {
-            var headerChecksum = ArrayHelpers.ConcatArrays(_checksumHeaderPrefix, GenericHash.Hash(
-                ArrayHelpers.ConcatArrays(BaseNonce,
+            var headerChecksum = GenericHash.Hash(
+                ArrayHelpers.ConcatArrays(_checksumHeaderPrefix, BaseNonce,
                     FilenameNonce, Filename,
                     Utils.IntegerToLittleEndian(Version),
                     Key,
                     BitConverter.GetBytes(UnencryptedFileLength)),
                 Utils.GetEphemeralHashKey(ephemeralKey),
-                headerChecksumLength));
+                headerChecksumLength);
             if (!headerChecksum.SequenceEqual(HeaderChecksum))
             {
                 throw new BadFileHeaderException("Malformed file header: file could be damaged or manipulated!");

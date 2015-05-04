@@ -44,10 +44,9 @@ namespace StreamCryptor.Model
         /// <param name="chunkChecksumLength">The length of the checksum.</param>
         public void SetChunkChecksum(byte[] ephemeralKey, int chunkChecksumLength)
         {
-            ChunkChecksum = ArrayHelpers.ConcatArrays(_checksumChunkPrefix,
-                GenericHash.Hash(ArrayHelpers.ConcatArrays(Chunk,
-                    Utils.IntegerToLittleEndian(ChunkLength)),
-                    Utils.GetEphemeralHashKey(ephemeralKey), chunkChecksumLength));
+            ChunkChecksum = GenericHash.Hash(ArrayHelpers.ConcatArrays(_checksumChunkPrefix, Chunk,
+                Utils.IntegerToLittleEndian(ChunkLength)),
+                Utils.GetEphemeralHashKey(ephemeralKey), chunkChecksumLength);
         }
 
         /// <summary>
@@ -58,10 +57,9 @@ namespace StreamCryptor.Model
         /// <exception cref="BadFileChunkException"></exception>
         public void ValidateChunkChecksum(byte[] ephemeralKey, int chunkChecksumLength)
         {
-            var chunkChecksum = ArrayHelpers.ConcatArrays(_checksumChunkPrefix,
-                GenericHash.Hash(
-                    ArrayHelpers.ConcatArrays(Chunk, Utils.IntegerToLittleEndian(ChunkLength)),
-                    Utils.GetEphemeralHashKey(ephemeralKey), chunkChecksumLength));
+            var chunkChecksum = GenericHash.Hash(
+                ArrayHelpers.ConcatArrays(_checksumChunkPrefix, Chunk, Utils.IntegerToLittleEndian(ChunkLength)),
+                Utils.GetEphemeralHashKey(ephemeralKey), chunkChecksumLength);
             if (!chunkChecksum.SequenceEqual(ChunkChecksum))
             {
                 throw new BadFileChunkException("Wrong checksum, file could be damaged or manipulated!");
