@@ -1,23 +1,27 @@
 # StreamCryptor [![Build status](https://img.shields.io/appveyor/ci/bitbeans/StreamCryptor.svg?style=flat-square)](https://ci.appveyor.com/project/bitbeans/streamcryptor) [![Build Status](https://img.shields.io/travis/bitbeans/StreamCryptor.svg?style=flat-square)](https://travis-ci.org/bitbeans/StreamCryptor) [![NuGet Version](https://img.shields.io/nuget/v/StreamCryptor.svg?style=flat-square)](https://www.nuget.org/packages/StreamCryptor/) [![License](http://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/bitbeans/StreamCryptor/blob/master/LICENSE)
 You can use StreamCryptor to encrypt and decrypt files without size limit and the need to load every file completely into memory.
-StreamCryptor uses `FileStream` to read and write files in chunks, there is also an asynchronous implementations for progress reporting available: [example](../master/examples/DemoAsync.md). 
+StreamCryptor uses `FileStream` to read and write files in chunks, there is also an asynchronous implementations for progress reporting available: [example](../master/examples/DemoAsync.md). For more working examples check out the tests in this repository.
 
-Every file contains a `EncryptedFileHeader` some `EncryptedFileChunks` and an `EncryptedFileFooter`.
 Files are encrypted into [SCCEF](https://github.com/bitbeans/StreamCryptor#sccef-file-format) (StreamCryptor Chunked Encrypted File) format.
+Every file contains an `EncryptedFileHeader` some `EncryptedFileChunks` and an `EncryptedFileFooter` to prevent file manipulation.
 
 The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
 All cryptographic operations are performed via [libsodium-net](https://github.com/adamcaudill/libsodium-net) and thus [libsodium](https://github.com/jedisct1/libsodium)), see [Algorithm details](https://github.com/bitbeans/StreamCryptor#algorithm-details).
 
 To protect the senders PublicKey from beeing tracked, you should use an ephemeral key pair for every file. If you do this it isn't possible to authenticate who encrypted the file!
 
-## Status
+## Code Status
 
-> Project is currently under development!
+
+StreamCryptor was subjected to a source code audit carried out by  [Cure53](https://cure53.de).
+
+Final report (PDF): [Audit-Report StreamCryptor 04.2015](https://cure53.de/pentest-report_streamcryptor.pdf)
 
 
 ## Installation
 
 There is a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) available.
+
 
 ## This project uses the following libraries
 
@@ -32,13 +36,13 @@ There is a [NuGet package](https://www.nuget.org/packages/StreamCryptor/) availa
 
 This library targets **.NET 4.5**.
 
-## SCCEF file format
+## SCCEF file format version 2
 
 ### EncryptedFileHeader
-- `Version` - Used to indicate the message format. Current version is 1.
+- `Version` - Used to indicate the message format. Current version is **2**.
 - `BaseNonce` - The 16 bytes, randomly generated nonce used to generate the chunk nonces.
 - `EphemeralNonce` - The 24 byte nonce for the ephemeral secret key.
-- `Key` - The encrypted 32 byte ephemeral secret key to encrypt and decrypt the chunks.
+- `Key` - The encrypted 64 byte ephemeral secret key. The first 32 bytes of the key are used to handle the encryption and decryption of the chunks. The last 32 bytes are to hash the checksums with blake2b and protect these hashes with a key.
 - `HeaderChecksum` - The header checksum to validate the header and prevent file manipulation.
 - `Filename` - The encrypted original filename, padded to 256 bytes.
 - `FilenameNonce` -  The 24 byte nonce to encrypt the filename.
@@ -46,18 +50,12 @@ This library targets **.NET 4.5**.
 - `UnencryptedFileLength` - The file length of the unencrypted file.
 
 ### EncryptedFileChunk
-- `ChunkNumber` - Chunk number, starting at 0.
-- `ChunkNonce` - Combined chunk nonce (16 byte BaseNonce from the header || 8 byte ChunkNumber)
 - `ChunkLength` - The length of the chunk in bytes.
 - `ChunkIsLast` - Marks the chunk as last in the file (there only can be one last chunk per file).
 - `ChunkChecksum` - The checksum to validate the chunk and prevent file manipulation.
 - `Chunk` - The encrypted chunk content.
 
 ### EncryptedFileFooter
-- `ChunkCount` - The encrypted number of chunks in the file.
-- `OverallChunkLength` - The encrypted overall length of all chunks in bytes.
-- `FooterNonceLength` - The 24 byte nonce to encrypt and decrypt the ChunkCount.
-- `FooterNonceCount` - The 24 byte nonce to encrypt and decrypt the OverallChunkLength.
 - `FooterChecksum` - The footer checksum to validate the footer and prevent file manipulation.
 
 ## Usage
@@ -127,8 +125,8 @@ public static async Task<DecryptedFile> DecryptFileWithStreamAsync(KeyPair keyPa
 
 ### And some fixed parameters
 ```csharp
-private const int CURRENT_VERSION = 1;
-private const int MIN_VERSION = 1;
+private const int CURRENT_VERSION = 2;
+private const int MIN_VERSION = 2;
 private const int CHUNK_LENGTH = 1048576; //~1MB
 private const int CHUNK_COUNT_START = 0;
 private const int CHUNK_MIN_NUMBER = 0;

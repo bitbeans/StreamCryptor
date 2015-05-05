@@ -79,7 +79,7 @@ namespace StreamCryptor.Model
         public byte[] EphemeralNonce { get; private set; }
 
         /// <summary>
-        ///     The 32 byte ephemeral secret key.
+        ///     The 64 byte ephemeral secret key.
         /// </summary>
         [ProtoMember(5)]
         public byte[] Key { get; private set; }

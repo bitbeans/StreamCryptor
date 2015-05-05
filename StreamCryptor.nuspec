@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.3.2-beta2</version>
+        <version>0.4.0</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
@@ -12,16 +12,20 @@
 
 StreamCryptor uses FileStream to read and write files in chunks, there is also an asynchronous implementations for progress reporting available. 
 
-Every file contains a EncryptedFileHeader some EncryptedFileChunks and an EncryptedFileFooter.
 Files are encrypted into SCCEF (StreamCryptor Chunked Encrypted File) format.
+
+Every file contains an EncryptedFileHeader some EncryptedFileChunks and an EncryptedFileFooter to prevent file manipulation.
 
 The file serialization is realised with Google`s protobuf, it has a small overhead and offers an automatic length prefix for all file parts.
 
 All cryptographic operations are performed via libsodium-net (and thus libsodium).
 
-For more details visit the project site.</description>
+For more details and examples visit the github project site.</description>
         <summary>Stream encryption &amp; decryption with libsodium and protobuf</summary>
-        <releaseNotes>0.3.2-beta2
+        <releaseNotes>0.4.0
+* SCCEF Protocol Version 2 (not backward compatible)
+* Updated libsodium-net to 0.7.0 (libsodium v.1.0.2)
+0.3.2-beta2
 * Updated libsodium to 0.7.0-beta2
 0.3.2
 * Updated libsodium to 0.7.0-beta1 (thread-safe version)
@@ -53,13 +57,13 @@ For more details visit the project site.</description>
 * There was a bug on decrypting files with external private keys
 0.1.15
 * Changed TargetFrameworkVersion from v4.5 to v4.0</releaseNotes>
-        <copyright>Copyright (c) 2014 Christian Hermann (bitbeans)</copyright>
+        <copyright>Copyright (c) 2014 - 2015 Christian Hermann (bitbeans)</copyright>
         <language>en-US</language>
         <tags>stream encryption protobuf libsodium XSalsa20 Curve25519 Poly1305</tags>
         <dependencies>
             <group targetFramework=".NETFramework4.5">
                 <dependency id="protobuf-net" version="2.0.0.668" />
-                <dependency id="libsodium-net" version="0.7.0-beta2" />
+                <dependency id="libsodium-net" version="0.7.0" />
             </group>
         </dependencies>
     </metadata>
