@@ -99,24 +99,6 @@ namespace StreamCryptor.Helper
         }
 
         /// <summary>
-        ///     Generates random number.
-        /// </summary>
-        /// <param name="maxNumber">The max number.</param>
-        /// <see cref="http://blog.codeeffects.com/Article/Generate-Random-Numbers-And-Strings-C-Sharp" />
-        /// <returns>A random number.</returns>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public static int GetRandomNumber(int maxNumber)
-        {
-            if (maxNumber < 1)
-                throw new ArgumentOutOfRangeException("maxNumber", "maxNumber must be greater than 0");
-            var b = new byte[4];
-            new RNGCryptoServiceProvider().GetBytes(b);
-            var seed = (b[0] & 0x7f) << 24 | b[1] << 16 | b[2] << 8 | b[3];
-            var r = new Random(seed);
-            return r.Next(1, maxNumber);
-        }
-
-        /// <summary>
         ///     Generates a random string of given length.
         /// </summary>
         /// <param name="length">length of the random string.</param>
@@ -131,7 +113,7 @@ namespace StreamCryptor.Helper
                 "A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
             };
             var sb = new StringBuilder();
-            for (var i = 0; i < length; i++) sb.Append(array[GetRandomNumber(array.Length + 1) - 1]);
+            for (var i = 0; i < length; i++) sb.Append(array[Sodium.SodiumCore.GetRandomNumber(array.Length)]);
             return sb.ToString();
         }
 
