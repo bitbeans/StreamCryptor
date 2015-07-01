@@ -126,12 +126,13 @@ namespace StreamCryptor.Helper
                 Math.Pow(2, numBits)
             ) - 1;
             
+            var rval = 0;
+            var b = new byte[numBytes];
             do {
                 // Let's get our bytes
-                var b = new byte[numBytes];
                 new RNGCryptoServiceProvider().GetBytes(b);
                 
-                var rval = 0;
+                rval = 0;
                 for (var i = 0; i < numBytes; i++) {
                     rval |= b[i] << (i * 8);
                 }
