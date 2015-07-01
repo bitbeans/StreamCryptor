@@ -102,36 +102,66 @@ namespace StreamCryptor.Helper
         ///     Generates random number.
         /// </summary>
         /// <param name="maxNumber">The max number.</param>
-        /// <see cref="http://blog.codeeffects.com/Article/Generate-Random-Numbers-And-Strings-C-Sharp" />
         /// <returns>A random number.</returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <remarks>Move to libsodium-net: waiting for stable release</remarks>
         public static int GetRandomNumber(int maxNumber)
         {
-            if (maxNumber < 1)
+            if (maxNumber < 1) {
                 throw new ArgumentOutOfRangeException("maxNumber", "maxNumber must be greater than 0");
-            var b = new byte[4];
-            new RNGCryptoServiceProvider().GetBytes(b);
-            var seed = (b[0] & 0x7f) << 24 | b[1] << 16 | b[2] << 8 | b[3];
-            var r = new Random(seed);
-            return r.Next(1, maxNumber);
+            }
+            
+            // Get the number of bits needed to store this number
+            var numBits = Convert.ToInt32(
+                Math.Ceiling(Math.Log(maxNumber, 2))
+            );
+            
+            // Get the number of bytes
+            var numBytes = Convert.ToInt32(
+                Math.Ceiling(numBits / 8)
+            );
+            
+            // 2^N - 1 builds a binary mask for use with the & bitwise operator
+            var mask = Convert.ToInt32(
+                Math.Pow(2, numBits)
+            ) - 1;
+            
+            do {
+                // Let's get our bytes
+                var b = new byte[numBytes];
+                new RNGCryptoServiceProvider().GetBytes(b);
+                
+                var rval = 0;
+                for (var i = 0; i < numBytes; i++) {
+                    rval |= b[i] << (i * 8);
+                }
+                
+                // Apply the bit mask
+                rval &= mask;
+            } while (rval >= maxNumber);
+            
+            // We now have an integer between 0 and maxNumber (non-inclusive)
+            return rval;
         }
 
         /// <summary>
         ///     Generates a random string of given length.
         /// </summary>
         /// <param name="length">length of the random string.</param>
-        /// <see cref="http://blog.codeeffects.com/Article/Generate-Random-Numbers-And-Strings-C-Sharp" />
         /// <returns>A random string.</returns>
+        /// <remarks>Move to libsodium-net: waiting for stable release</remarks>
         public static string GetRandomString(int length)
         {
             var array = new string[54]
             {
                 "0", "2", "3", "4", "5", "6", "8", "9",
-                "a", "b", "c", "d", "e", "f", "g", "h", "j", "k", "m", "n", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
-                "A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+                "a", "b", "c", "d", "e", "f", "g", "h", "j", "k", "m", "n", "p", "q", "r", "s", "t", "u", "v", "w", "x",
+                "y", "z",
+                "A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "R", "S", "T", "U", "V", "W", "X",
+                "Y", "Z"
             };
             var sb = new StringBuilder();
-            for (var i = 0; i < length; i++) sb.Append(array[GetRandomNumber(array.Length + 1) - 1]);
+            for (var i = 0; i < length; i++) sb.Append(array[GetRandomNumber(array.Length)]);
             return sb.ToString();
         }
 
