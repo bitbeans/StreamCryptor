@@ -39,18 +39,19 @@ namespace Tests
         }
 
         /// <summary>
-        ///     Check GetRandomString() for the correct output length.
+        ///     Check GetRandomFileName() for the correct output length.
         /// </summary>
         [Test]
-        public void GenerateRandomStringsTest()
+        public void GenerateRandomFileNameTest()
         {
+            const string fileExtension = ".sccef";
             const int randomStringLength = 11;
             for (var i = 10; i > 0; i--)
             {
-                var randomString = Utils.GetRandomString(randomStringLength);
-                Console.WriteLine("Generated random string " + randomString + " with length of " + randomStringLength +
+                var randomString = Utils.GetRandomFileName(randomStringLength, fileExtension);
+                Console.WriteLine("Generated random filename " + randomString + " with length of " + (randomStringLength + fileExtension.Length) +
                                   " chars");
-                Assert.AreEqual(randomString.Length, randomStringLength);
+                Assert.AreEqual(randomString.Length, randomStringLength + fileExtension.Length);
             }
         }
 

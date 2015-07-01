@@ -433,7 +433,7 @@ namespace StreamCryptor
             if (maskFileName)
             {
                 //store the output file with a masked file name and the fileExtension
-                outputFile = Utils.GetRandomString(MASKED_FILENAME_LENGTH) + fileExtension;
+                outputFile = Utils.GetRandomFileName(MASKED_FILENAME_LENGTH, fileExtension);
                 outputFullPath = Path.Combine(outputFolder, outputFile);
             }
             else
@@ -606,7 +606,7 @@ namespace StreamCryptor
                     throw new ArgumentException("The given path to the output folder contains invalid characters!");
 
                 //get a tmp name
-                tmpFile = Utils.GetRandomString(MASKED_FILENAME_LENGTH) + TEMP_FILE_EXTENSION;
+                tmpFile = Utils.GetRandomFileName(MASKED_FILENAME_LENGTH, TEMP_FILE_EXTENSION);
                 tmpFullPath = Path.Combine(outputFolder, tmpFile);
                 using (FileStream fileStreamEncrypted = File.OpenRead(inputFile))
                 {

@@ -118,6 +118,29 @@ namespace StreamCryptor.Helper
         }
 
         /// <summary>
+        ///     Generates a random filename of given length.
+        /// </summary>
+        /// <param name="length">length of the random string.</param>
+        /// <param name="fileExtension">a file extension</param>
+        /// <returns>A random filename.</returns>
+        /// <exception cref="FormatException">A file extension must start with: .</exception>
+        public static string GetRandomFileName(int length, string fileExtension)
+        {
+            if (!fileExtension.StartsWith("."))
+                throw new FormatException("A file extension must start with: .");
+            var array = new string[54]
+            {
+                "0", "2", "3", "4", "5", "6", "8", "9",
+                "a", "b", "c", "d", "e", "f", "g", "h", "j", "k", "m", "n", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+                "A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+            };
+            var sb = new StringBuilder();
+            for (var i = 0; i < length; i++) sb.Append(array[Sodium.SodiumCore.GetRandomNumber(array.Length)]);
+            sb.Append(fileExtension);
+            return sb.ToString();
+        }
+
+        /// <summary>
         ///     Converts a string into a byte array and fill it up to given length.
         /// </summary>
         /// <param name="str">The input string.</param>
