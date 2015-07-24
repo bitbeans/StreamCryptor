@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using NUnit.Framework;
 using Sodium;
 using StreamCryptor;
+using StreamCryptor.Model;
 
 namespace Tests
 {
@@ -111,6 +113,31 @@ namespace Tests
             await
                 Cryptor.EncryptFileWithStreamAsync(testKeyPair, TESTFILE_RAW, null,
                     Path.Combine("Testfiles", "decrypted"), "hulk");
+        }
+
+        [Test]
+        [ExpectedException(typeof(OperationCanceledException))]
+        public async void EncryptionCancellationTestAsync()
+        {
+            var cancellationTokenSource = new CancellationTokenSource();
+            var progressEncrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            progressEncrypt.ProgressChanged +=
+                (s, e) =>
+                {
+                    if (e.ProgressPercentage > 10)
+                    {
+                        cancellationTokenSource.Cancel();
+                    }
+                    Console.WriteLine("Encrypting: " + e.ProgressPercentage + "%\n");
+                };
+
+            var TESTFILE_RAW = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
+            const string PRIVATE_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
+            const string PUBLIC_KEY = "1158b1ea7d45919968b87dab6cab27eff5871304ea9856588e9ec02a6d93c42e";
+            var testKeyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
+            await
+                Cryptor.EncryptFileWithStreamAsync(testKeyPair, TESTFILE_RAW, progressEncrypt,
+                    Path.Combine("Testfiles", "decrypted"), ".sccef", cancellationToken: cancellationTokenSource.Token);
         }
     }
 }

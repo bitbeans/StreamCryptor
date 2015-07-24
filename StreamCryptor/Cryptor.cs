@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace StreamCryptor
@@ -322,19 +323,21 @@ namespace StreamCryptor
         /// <param name="encryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
         /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
+        /// <param name="cancellationToken">Token to request task cancellation.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="DirectoryNotFoundException"></exception>
-        public static async Task<string> EncryptFileWithStreamAsync(KeyPair senderKeyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<string> EncryptFileWithStreamAsync(KeyPair senderKeyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             //validate the senderKeyPair
             if (!ValidateKeyPair(senderKeyPair))
             {
                 throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
-            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName).ConfigureAwait(false);
+            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, senderKeyPair.PublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -346,19 +349,21 @@ namespace StreamCryptor
         /// <param name="encryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
         /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
+        /// <param name="cancellationToken">Token to request task cancellation.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <remarks>The outputFolder is equal to the inputFolder.</remarks>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="DirectoryNotFoundException"></exception>
-        public static async Task<string> EncryptFileWithStreamAsync(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<string> EncryptFileWithStreamAsync(KeyPair senderKeyPair, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             //validate the senderKeyPair
             if (!ValidateKeyPair(senderKeyPair))
             {
                 throw new ArgumentOutOfRangeException("senderKeyPair", "invalid keypair");
             }
-            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName).ConfigureAwait(false);
+            return await EncryptFileWithStreamAsync(senderKeyPair.PrivateKey, senderKeyPair.PublicKey, recipientPublicKey, inputFile, encryptionProgress, outputFolder, fileExtension, maskFileName, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -372,11 +377,13 @@ namespace StreamCryptor
         /// <param name="outputFolder">There the encrypted file will be stored, if this is null the input directory is used.</param>
         /// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
         /// <param name="maskFileName">Replaces the filename with some random name.</param>
+        /// <param name="cancellationToken">Token to request task cancellation.</param>
         /// <returns>The name of the encrypted file.</returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         /// <exception cref="FileNotFoundException"></exception>
         /// <exception cref="DirectoryNotFoundException"></exception>
-        public static async Task<string> EncryptFileWithStreamAsync(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false)
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<string> EncryptFileWithStreamAsync(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string outputFolder = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             string outputFullPath = String.Empty;
             string outputFile = String.Empty;
@@ -466,9 +473,11 @@ namespace StreamCryptor
                     int bytesRead;
                     do
                     {
+                        //cancel the task if requested
+                        cancellationToken.ThrowIfCancellationRequested();
                         //start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
                         byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
-                        bytesRead = await fileStreamUnencrypted.ReadAsync(unencryptedChunk, 0, CHUNK_LENGTH).ConfigureAwait(false);
+                        bytesRead = await fileStreamUnencrypted.ReadAsync(unencryptedChunk, 0, CHUNK_LENGTH, cancellationToken).ConfigureAwait(false);
                         //check if there is still some work
                         if (bytesRead != 0)
                         {
@@ -534,6 +543,7 @@ namespace StreamCryptor
         /// <param name="outputFolder">There the decrypted file will be stored.</param>
         /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
         /// <param name="overWrite">Overwrite the output file if it exist.</param>
+        /// <param name="cancellationToken">Token to request task cancellation.</param>
         /// <returns>The fullpath to the decrypted file.</returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         /// <exception cref="FileNotFoundException"></exception>
@@ -543,14 +553,15 @@ namespace StreamCryptor
         /// <exception cref="BadFileFooterException"></exception>
         /// <exception cref="BadFileHeaderException"></exception>
         /// <exception cref="IOException"></exception>
-        public static async Task<string> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<string> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             //validate the keyPair
             if (!ValidateKeyPair(keyPair))
             {
                 throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
             }
-            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, outputFolder, decryptionProgress, overWrite).ConfigureAwait(false);
+            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, outputFolder, decryptionProgress, overWrite, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -561,6 +572,7 @@ namespace StreamCryptor
         /// <param name="outputFolder">There the decrypted file will be stored.</param>
         /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
         /// <param name="overWrite">Overwrite the output file if it exist.</param>
+        /// <param name="cancellationToken">Token to request task cancellation.</param>
         /// <returns>The fullpath to the decrypted file.</returns>
         /// <remarks>This method needs a revision.</remarks>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
@@ -572,7 +584,8 @@ namespace StreamCryptor
         /// <exception cref="BadFileHeaderException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        public static async Task<string> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false)
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<string> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             string outputFile = String.Empty;
             string outputFullPath = String.Empty;
@@ -645,6 +658,8 @@ namespace StreamCryptor
                             EncryptedFileChunk encryptedFileChunk = new EncryptedFileChunk();
                             while ((encryptedFileChunk = Serializer.DeserializeWithLengthPrefix<EncryptedFileChunk>(fileStreamEncrypted, PrefixStyle.Base128, 2)) != null)
                             {
+                                //cancel the task if requested
+                                cancellationToken.ThrowIfCancellationRequested();
                                 //indicates if ChunkIsLast was found, to prepend more than one last chnunks.
                                 bool isLastChunkFound = false;
                                 byte[] chunkNonce = new byte[NONCE_LENGTH];
@@ -670,7 +685,7 @@ namespace StreamCryptor
                                 //check the current chunk checksum
                                 encryptedFileChunk.ValidateChunkChecksum(ephemeralKey, CHUNK_CHECKSUM_LENGTH);
                                 byte[] decrypted = SecretBox.Open(encryptedFileChunk.Chunk, chunkNonce, Utils.GetEphemeralEncryptionKey(ephemeralKey));
-                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length).ConfigureAwait(false);
+                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length, cancellationToken).ConfigureAwait(false);
                                 overallBytesRead += (long)decrypted.Length;
                                 chunkNumber++;
                                 overallChunkLength += encryptedFileChunk.ChunkLength;
@@ -735,6 +750,13 @@ namespace StreamCryptor
                 //and throw the exception
                 ExceptionDispatchInfo.Capture(ex).Throw();
             }
+            catch (OperationCanceledException ex)
+            {
+                //delete the temp file
+                File.Delete(tmpFullPath);
+                //and throw the exception
+                ExceptionDispatchInfo.Capture(ex).Throw();
+            }
             return outputFile;
         }
         #endregion
@@ -746,6 +768,7 @@ namespace StreamCryptor
         /// <param name="keyPair">The KeyPair to decrypt the ephemeralKey.</param>
         /// <param name="inputFile">An encrypted file.</param>
         /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
+        /// <param name="cancellationToken">Token to request task cancellation.</param>
         /// <returns>A DecryptedFile object.</returns>
         /// <remarks>This method can throw an OutOfMemoryException when there is not enough ram to hold the DecryptedFile!</remarks>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
@@ -756,14 +779,15 @@ namespace StreamCryptor
         /// <exception cref="BadFileHeaderException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="OutOfMemoryException"></exception>
-        public static async Task<DecryptedFile> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<DecryptedFile> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             //validate the keyPair
             if (!ValidateKeyPair(keyPair))
             {
                 throw new ArgumentOutOfRangeException("keypair", "invalid keypair");
             }
-            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, decryptionProgress).ConfigureAwait(false);
+            return await DecryptFileWithStreamAsync(keyPair.PrivateKey, inputFile, decryptionProgress, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -772,6 +796,7 @@ namespace StreamCryptor
         /// <param name="recipientPrivateKey">A 32 byte private key.</param>
         /// <param name="inputFile">An encrypted file.</param>
         /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
+        /// <param name="cancellationToken">Token to request task cancellation.</param>
         /// <returns>A DecryptedFile object.</returns>
         /// <remarks>This method can throw an OutOfMemoryException when there is not enough ram to hold the DecryptedFile!</remarks>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
@@ -782,7 +807,8 @@ namespace StreamCryptor
         /// <exception cref="BadFileHeaderException"></exception>
         /// <exception cref="IOException"></exception>
         /// <exception cref="OutOfMemoryException"></exception>
-        public static async Task<DecryptedFile> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null)
+        /// <exception cref="OperationCanceledException"></exception>
+        public static async Task<DecryptedFile> DecryptFileWithStreamAsync(byte[] recipientPrivateKey, string inputFile, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             DecryptedFile decryptedFile = new DecryptedFile();
             try
@@ -831,6 +857,8 @@ namespace StreamCryptor
                             EncryptedFileChunk encryptedFileChunk = new EncryptedFileChunk();
                             while ((encryptedFileChunk = Serializer.DeserializeWithLengthPrefix<EncryptedFileChunk>(fileStreamEncrypted, PrefixStyle.Base128, 2)) != null)
                             {
+                                //cancel the task if requested
+                                cancellationToken.ThrowIfCancellationRequested();
                                 //indicates if ChunkIsLast was found, to prepend more than one last chnunks.
                                 bool isLastChunkFound = false;
                                 byte[] chunkNonce = new byte[NONCE_LENGTH];
@@ -856,7 +884,7 @@ namespace StreamCryptor
                                 //check the current chunk checksum
                                 encryptedFileChunk.ValidateChunkChecksum(ephemeralKey, CHUNK_CHECKSUM_LENGTH);
                                 byte[] decrypted = SecretBox.Open(encryptedFileChunk.Chunk, chunkNonce, Utils.GetEphemeralEncryptionKey(ephemeralKey));
-                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length).ConfigureAwait(false);
+                                await fileStreamUnencrypted.WriteAsync(decrypted, 0, decrypted.Length, cancellationToken).ConfigureAwait(false);
                                 overallBytesRead += (long)decrypted.Length;
                                 chunkNumber++;
                                 overallChunkLength += encryptedFileChunk.ChunkLength;
