@@ -624,8 +624,11 @@ namespace StreamCryptor
                 using (FileStream fileStreamEncrypted = File.OpenRead(inputFile))
                 {
                     //first read the file header
-                    EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader();
-                    encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Base128, 1);
+                    EncryptedFileHeader encryptedFileHeader = Serializer.DeserializeWithLengthPrefix<EncryptedFileHeader>(fileStreamEncrypted, PrefixStyle.Base128, 1);
+                    if (encryptedFileHeader == null)
+                    {
+                        throw new BadFileHeaderException("Missing file header: maybe not a StreamCryptor encrypted file");
+                    }
                     //decrypt the ephemeral key with our public box 
                     byte[] ephemeralKey = PublicKeyBox.Open(encryptedFileHeader.Key, encryptedFileHeader.EphemeralNonce, recipientPrivateKey, encryptedFileHeader.SenderPublicKey);
                     //validate our file header
