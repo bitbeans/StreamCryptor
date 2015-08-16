@@ -105,6 +105,7 @@ namespace StreamCryptor.Helper
         /// <param name="fileExtension">a file extension</param>
         /// <returns>A random filename.</returns>
         /// <exception cref="FormatException">A file extension must start with: .</exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public static string GetRandomFileName(int length, string fileExtension)
         {
             if (!fileExtension.StartsWith("."))
@@ -126,8 +127,9 @@ namespace StreamCryptor.Helper
         /// </summary>
         /// <param name="str">The input string.</param>
         /// <param name="paddingLength">The padding length.</param>
-        /// <returns>A byte[256] array.</returns>
+        /// <returns>A padded byte array.</returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
+        [Obsolete("Use AddPkcs7Padding instead")]
         public static byte[] StringToPaddedByteArray(string str, int paddingLength)
         {
             if (str.Length > 256)
@@ -147,13 +149,84 @@ namespace StreamCryptor.Helper
         /// <param name="paddedByteArray">The padded byte array.</param>
         /// <returns>An unpadded string.</returns>
         /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="OverflowException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static string PaddedByteArrayToString(byte[] paddedByteArray)
         {
             if (paddedByteArray == null)
             {
                 throw new ArgumentNullException("paddedByteArray", "paddedByteArray can not be null");
             }
-            return Encoding.UTF8.GetString(paddedByteArray).TrimEnd('\0');
+
+            if (paddedByteArray[paddedByteArray.Length - 1] == 0)
+            {
+                // backward compatibility (remove zero padding of old implementation)
+                return Encoding.UTF8.GetString(paddedByteArray).TrimEnd('\0');
+            }
+            return Encoding.UTF8.GetString(RemovePkcs7Padding(paddedByteArray));
+        }
+
+        /// <summary>
+        ///     Removes the Pkcs7 padding of an array.
+        /// </summary>
+        /// <param name="paddedByteArray">The padded array.</param>
+        /// <returns>The unpadded array.</returns>
+        /// <exception cref="OverflowException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static byte[] RemovePkcs7Padding(byte[] paddedByteArray)
+        {
+            if (paddedByteArray == null)
+            {
+                throw new ArgumentNullException("paddedByteArray", "paddedByteArray can not be null");
+            }
+
+            var last = paddedByteArray[paddedByteArray.Length - 1];
+            if (paddedByteArray.Length <= last)
+            {
+                // there is no padding
+                return paddedByteArray;
+            }
+
+            return ArrayHelpers.SubArray(paddedByteArray, 0, (paddedByteArray.Length - last));
+        }
+
+        /// <summary>
+        ///     Fill up an array with Pkcs7 padding.
+        /// </summary>
+        /// <param name="data">The source array.</param>
+        /// <param name="paddingLength">The length of the padding.</param>
+        /// <returns>The padded array.</returns>
+        /// <exception cref="OverflowException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static byte[] AddPkcs7Padding(byte[] data, int paddingLength)
+        {
+            if (data.Length > 256)
+            {
+                throw new ArgumentOutOfRangeException("data", "data must be <= 256 in length");
+            }
+            if (paddingLength > 256)
+            {
+                throw new ArgumentOutOfRangeException("paddingLength", "paddingLength must be <= 256");
+            }
+
+            if (paddingLength <= data.Length)
+            {
+                // there is nothing to pad
+                return data;
+            }
+
+            var output = new byte[paddingLength];
+            Buffer.BlockCopy(data, 0, output, 0, data.Length);
+            for (var i = data.Length; i < output.Length; i++)
+            {
+                output[i] = (byte)(paddingLength - data.Length);
+            }
+            return output;
         }
     }
 }

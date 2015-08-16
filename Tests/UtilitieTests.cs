@@ -9,6 +9,26 @@ namespace Tests
     public class UtilitieTests
     {
         /// <summary>
+        ///     Test the Pkcs7 padding.
+        /// </summary>
+        [Test]
+        public void PaddingTest()
+        {
+            var array = new byte[]
+            {
+                159, 5, 128, 251, 11, 77, 77, 217,
+                134, 151, 2, 63, 29, 180, 56, 81,
+                35, 169, 179, 238, 245, 42, 215, 129,
+                56, 217, 10, 203, 68, 152, 208, 5
+            };
+
+            var paddedArray = Utils.AddPkcs7Padding(array, 256);
+            Assert.AreEqual(224, paddedArray[255]);
+            var unpaddedArray = Utils.RemovePkcs7Padding(paddedArray);
+            Assert.AreEqual(array, unpaddedArray);
+        }
+
+        /// <summary>
         ///     Check GetEphemeralEncryptionKey() for the correct output.
         /// </summary>
         [Test]

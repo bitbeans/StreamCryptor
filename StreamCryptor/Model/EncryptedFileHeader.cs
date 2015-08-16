@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text;
 using ProtoBuf;
 using Sodium;
 using StreamCryptor.Helper;
@@ -118,10 +119,14 @@ namespace StreamCryptor.Model
         /// </summary>
         /// <param name="fileName">The file name.</param>
         /// <param name="fileNameLength">The length it will be filled up.</param>
+        /// <exception cref="OverflowException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
         public void ProtectFileName(string fileName, int fileNameLength)
         {
             //fill up the filename to 256 bytes
-            var paddedFileName = Utils.StringToPaddedByteArray(fileName, fileNameLength);
+            var paddedFileName = Utils.AddPkcs7Padding(Encoding.UTF8.GetBytes(fileName), fileNameLength);
             //encrypt the file name in the header
             Filename = SecretBox.Create(paddedFileName, FilenameNonce,
                 Utils.GetEphemeralEncryptionKey(UnencryptedEphemeralKey));
@@ -131,6 +136,8 @@ namespace StreamCryptor.Model
         ///     Sets the header checksum.
         /// </summary>
         /// <param name="headerChecksumLength">The length of the checksum.</param>
+        /// <exception cref="OverflowException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public void SetHeaderChecksum(int headerChecksumLength)
         {
             HeaderChecksum = GenericHash.Hash(ArrayHelpers.ConcatArrays(_checksumHeaderPrefix, BaseNonce,
