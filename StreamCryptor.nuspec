@@ -2,10 +2,10 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.5.0-beta2</version>
+        <version>0.5.0</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
-        <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE</licenseUrl>
+        <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE.md</licenseUrl>
         <projectUrl>https://github.com/bitbeans/StreamCryptor</projectUrl>
         <requireLicenseAcceptance>true</requireLicenseAcceptance>
         <description>You can use StreamCryptor to encrypt and decrypt files without size limit and the need to load every file completely into memory.
@@ -22,7 +22,9 @@ All cryptographic operations are performed via libsodium-net (and thus libsodium
 
 For more details and examples visit the github project site.</description>
         <summary>Stream encryption &amp; decryption with libsodium and protobuf</summary>
-        <releaseNotes>0.5.0-beta2
+        <releaseNotes>0.5.0
+* Updated libsodium-net to 0.9.0 (libsodium v1.0.7) 
+0.5.0-beta2
 * Changed file name padding to PKCS7
 0.5.0-beta1
 * GetRandomFileName now uses also libsodium
@@ -69,11 +71,11 @@ For more details and examples visit the github project site.</description>
         <dependencies>
             <group targetFramework=".NETFramework4.5">
                 <dependency id="protobuf-net" version="2.0.0.668" />
-                <dependency id="libsodium-net" version="0.9.0-beta3" />
+                <dependency id="libsodium-net" version="0.9.0" />
             </group>
         </dependencies>
     </metadata>
     <files>
-        <file src="StreamCryptor\bin\Debug\StreamCryptor.dll" target="lib\net45\StreamCryptor.dll" />
+        <file src="StreamCryptor\bin\Release\StreamCryptor.dll" target="lib\net45\StreamCryptor.dll" />
     </files>
 </package>
