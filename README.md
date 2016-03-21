@@ -170,5 +170,9 @@ The produced overhead of the encrypted files:
 ## Why
 Inspired by https://github.com/jedisct1/libsodium/issues/141 and the [nacl-stream-js](https://github.com/dchest/nacl-stream-js) project.
 
+## Example
+
+See [SccefDecryptor](https://github.com/bitbeans/SccefDecryptor)
+
 ## License
 [MIT](https://en.wikipedia.org/wiki/MIT_License)
