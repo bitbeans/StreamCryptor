@@ -213,3 +213,4 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+!StreamCryptor.sln.DotSettings.user
