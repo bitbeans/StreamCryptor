@@ -1,17 +1,23 @@
-language: c
+language: csharp
+
+mono:
+ - 4.4.1
 
 os:
  - linux
- 
+
 env:
  - TRAVIS_OS_UNAME=$(uname -s)
 
+solution: StreamCryptor.sln
+
 install:
- - if [[ $TRAVIS_OS_UNAME = 'Linux' ]]; then bash travis-linux-deps.sh; fi
- 
+ - nuget restore StreamCryptor.sln
+ - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
+
 before_script:
  - bash travis-build-libsodium.sh
- 
+
 script:
  - xbuild StreamCryptor.sln
- - bash nunit-console.sh ./Tests/bin/Debug/Tests.dll
+ - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./Tests/bin/Debug/Tests.dll

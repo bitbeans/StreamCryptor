@@ -17,6 +17,90 @@ namespace Tests
     public class WorkAsyncTest
     {
         /// <summary>
+        ///     Encrypt a file from a stream.
+        /// </summary>
+        [Test]
+        public async void WorkWithStreamTestAsync()
+        {
+            var progressEncrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            var progressDecrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            progressEncrypt.ProgressChanged +=
+                (s, e) => { Console.WriteLine("Encrypting: " + e.ProgressPercentage + "%\n"); };
+            progressDecrypt.ProgressChanged +=
+                (s, e) => { Console.WriteLine("Decrypting: " + e.ProgressPercentage + "%\n"); };
+            var RAW_FILE = Path.Combine("Testfiles", "MyAwesomeChipmunkKiller.jpg");
+            const string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+            const string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+            var OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
+            var keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
+
+            var data = File.ReadAllBytes(RAW_FILE);
+            var stream = new MemoryStream(data);
+            Console.Write("Encrypting MemoryStream . . .\n");
+            var encryptedFile =
+                await
+                    Cryptor.EncrypMemoryStreamAsync(keyPair.PrivateKey, keyPair.PublicKey,
+                        Utilities.HexToBinary(PUBLIC_KEY), "MyAwesomeChipmunkKiller.jpg", stream, OUTPUT_DIRECTORY, ".test", true, progressEncrypt).ConfigureAwait(false);
+
+            Console.Write("Decrypting testfile ("+ encryptedFile + ") . . .\n");
+            var decryptedFileObject =
+                await
+                    Cryptor.DecryptFileWithStreamAsync(keyPair.PrivateKey, Path.Combine(OUTPUT_DIRECTORY, encryptedFile),
+                        progressDecrypt).ConfigureAwait(false);
+            Console.Write("Get checksum of testfiles . . .\n");
+            Assert.AreEqual(Utils.GetChecksum(RAW_FILE), Utils.GetChecksum(decryptedFileObject.FileData));
+            //clear garbage 
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
+        }
+
+        /// <summary>
+        ///     Encrypt a file from a stream.
+        /// </summary>
+        [Test]
+        public async void WorkWithStreamTestSmallAsync()
+        {
+            var progressEncrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            var progressDecrypt = new Progress<StreamCryptorTaskAsyncProgress>();
+            progressEncrypt.ProgressChanged +=
+                (s, e) => { Console.WriteLine("Encrypting: " + e.ProgressPercentage + "%\n"); };
+            progressDecrypt.ProgressChanged +=
+                (s, e) => { Console.WriteLine("Decrypting: " + e.ProgressPercentage + "%\n"); };
+         
+            const string PRIVATE_KEY = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+            const string PUBLIC_KEY = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+            var OUTPUT_DIRECTORY = Path.Combine("Testfiles", "decrypted");
+            var keyPair = new KeyPair(Utilities.HexToBinary(PUBLIC_KEY), Utilities.HexToBinary(PRIVATE_KEY));
+
+            var TESTFILE_RAW = Path.Combine("Testfiles", "verysmallfile.dat");
+            const long TESTFILE_SIZE_KB = 1;
+
+            Console.Write("Generating {0} KB testfile . . .\n", TESTFILE_SIZE_KB);
+            var fs = new FileStream(TESTFILE_RAW, FileMode.CreateNew);
+            fs.Seek((TESTFILE_SIZE_KB * 1024), SeekOrigin.Begin);
+            fs.WriteByte(0);
+            fs.Close();
+
+            var data = File.ReadAllBytes(TESTFILE_RAW);
+            var stream = new MemoryStream(data);
+            Console.Write("Encrypting MemoryStream . . .\n");
+            var encryptedFile =
+                await
+                    Cryptor.EncrypMemoryStreamAsync(keyPair.PrivateKey, keyPair.PublicKey,
+                        Utilities.HexToBinary(PUBLIC_KEY), TESTFILE_RAW, stream, OUTPUT_DIRECTORY, ".test", true, progressEncrypt).ConfigureAwait(false);
+
+            Console.Write("Decrypting testfile (" + encryptedFile + ") . . .\n");
+            var decryptedFileObject =
+                await
+                    Cryptor.DecryptFileWithStreamAsync(keyPair.PrivateKey, Path.Combine(OUTPUT_DIRECTORY, encryptedFile),
+                        progressDecrypt).ConfigureAwait(false);
+            Console.Write("Get checksum of testfiles . . .\n");
+            Assert.AreEqual(Utils.GetChecksum(TESTFILE_RAW), Utils.GetChecksum(decryptedFileObject.FileData));
+            //clear garbage 
+            File.Delete(Path.Combine(OUTPUT_DIRECTORY, encryptedFile));
+            File.Delete(TESTFILE_RAW);
+        }
+
+        /// <summary>
         ///     Self encrypt an image file and decrypt with wrong key async.
         /// </summary>
         [Test]
