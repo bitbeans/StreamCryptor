@@ -13,11 +13,11 @@ solution: StreamCryptor.sln
 
 install:
  - nuget restore StreamCryptor.sln
- - nuget install NUnit.Runners -Version 2.6.4 -OutputDirectory testrunner
+ - nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
 
 before_script:
  - bash travis-build-libsodium.sh
 
 script:
  - xbuild StreamCryptor.sln
- - mono ./testrunner/NUnit.Runners.2.6.4/tools/nunit-console.exe ./Tests/bin/Debug/Tests.dll
+ - mono ./testrunner/NUnit.Runners.3.4.1/tools/nunit-console.exe ./Tests/bin/Debug/Tests.dll
