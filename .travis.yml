@@ -20,5 +20,4 @@ before_script:
 
 script:
  - xbuild StreamCryptor.sln
- - bash nunit-console.sh ./Tests/bin/Debug/Tests.dll
- - mono ./testrunner/NUnit.Runners.3.4.1/tools/nunit-console.exe ./Tests/bin/Debug/Tests.dll
+ - ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe ./Tests/bin/Debug/Tests.dll
