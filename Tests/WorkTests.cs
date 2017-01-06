@@ -102,10 +102,12 @@ namespace Tests
             File.Delete(Path.Combine(outputDirectory, decryptedFile));
         }
 
-        /// <summary>
-        ///     Self encrypt and decrypt a very small file.
-        /// </summary>
-        [Test]
+
+
+		/// <summary>
+		///     Self encrypt and decrypt a very small file.
+		/// </summary>
+		[Test]
         public void WorkWithVerySmallFileTest()
         {
             var testfileRaw = Path.Combine(TestContext.CurrentContext.TestDirectory, "Testfiles", "verysmallfile.dat");
@@ -166,10 +168,11 @@ namespace Tests
             File.Delete(testfileDecryptedFile);
         }
 
-        /// <summary>
-        ///     Self encrypt and decrypt a large file.
-        /// </summary>
-        [Test]
+
+		/// <summary>
+		///     Self encrypt and decrypt a large file.
+		/// </summary>
+		[Test]
         public void WorkWithLargeFileTest()
         {
             var testfileRaw = Path.Combine(TestContext.CurrentContext.TestDirectory, "Testfiles", "largefile.dat");
