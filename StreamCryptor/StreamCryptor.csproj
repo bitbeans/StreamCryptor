@@ -46,7 +46,7 @@
       <HintPath>..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Sodium">
+    <Reference Include="Sodium, Version=0.10.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\libsodium-net.0.10.0-beta3\lib\Net40\Sodium.dll</HintPath>
       <Private>True</Private>
     </Reference>
