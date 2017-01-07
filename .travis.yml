@@ -19,11 +19,11 @@ before_install:
   
 install:
  - mono .nuget/nuget.exe restore StreamCryptor.sln -Verbosity detailed
- - mono .nuget/nuget.exe install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
+ - mono .nuget/nuget.exe install NUnit.Runners -Version 3.5.0 -OutputDirectory testrunner
 
 before_script:
  - bash travis-build-libsodium.sh
 
 script:
  - xbuild StreamCryptor.sln
- - mono ./testrunner/NUnit.ConsoleRunner.3.4.1/tools/nunit3-console.exe ./Tests/bin/Debug/Tests.dll
+ - mono ./testrunner/NUnit.ConsoleRunner.3.5.0/tools/nunit3-console.exe ./Tests/bin/Debug/Tests.dll
