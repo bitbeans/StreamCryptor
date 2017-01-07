@@ -12,8 +12,8 @@ env:
 solution: StreamCryptor.sln
 
 install:
- - nuget restore StreamCryptor.sln
- - nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
+ - .nuget/nuget restore StreamCryptor.sln
+ - .nuget/nuget install NUnit.Runners -Version 3.4.1 -OutputDirectory testrunner
 
 before_script:
  - bash travis-build-libsodium.sh
