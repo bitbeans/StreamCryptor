@@ -704,26 +704,172 @@ namespace StreamCryptor
             return outputFile;
         }
 
-        /// <summary>
-        /// Decrypts a file asynchron with libsodium and protobuf-net.
-        /// </summary>
-        /// <param name="keyPair">The KeyPair to decrypt the ephemeralKey.</param>
-        /// <param name="inputFile">An encrypted file.</param>
-        /// <param name="outputFolder">There the decrypted file will be stored.</param>
-        /// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
-        /// <param name="overWrite">Overwrite the output file if it exist.</param>
-        /// <param name="cancellationToken">Token to request task cancellation.</param>
-        /// <returns>The fullpath to the decrypted file.</returns>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        /// <exception cref="FileNotFoundException"></exception>
-        /// <exception cref="DirectoryNotFoundException"></exception>
-        /// <exception cref="BadLastFileChunkException"></exception>
-        /// <exception cref="BadFileChunkException"></exception>
-        /// <exception cref="BadFileFooterException"></exception>
-        /// <exception cref="BadFileHeaderException"></exception>
-        /// <exception cref="IOException"></exception>
-        /// <exception cref="OperationCanceledException"></exception>
-        public static async Task<string> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false, CancellationToken cancellationToken = default(CancellationToken))
+
+		/// <summary>
+		/// Encrypts a stream asynchronous with libsodium and protobuf-net.
+		/// </summary>
+		/// <param name="senderPrivateKey">A 32 byte private key.</param>
+		/// <param name="senderPublicKey">A 32 byte public key.</param>
+		/// <param name="recipientPublicKey">A 32 byte public key.</param>
+		/// <param name="inputStream">The inputstream.</param>
+		/// <param name="encryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
+		/// <param name="outputFolder">Path to where the encrypted file will be stored</param>
+		/// <param name="originalFileName">The original file name of the stream</param>
+		/// <param name="fileExtension">Set a custom file extenstion: .whatever</param>
+		/// <param name="maskFileName">Replaces the filename with some random name.</param>
+		/// <param name="cancellationToken">Token to request task cancellation.</param>
+		/// <returns>The name of the encrypted file.</returns>
+		/// <exception cref="ArgumentOutOfRangeException"></exception>
+		/// <exception cref="DirectoryNotFoundException"></exception>
+		/// <exception cref="OperationCanceledException"></exception>
+		public static async Task<string> EncryptFileStreamWithStreamAsync(byte[] senderPrivateKey, byte[] senderPublicKey, byte[] recipientPublicKey, Stream inputStream, string outputFolder, string originalFileName, IProgress<StreamCryptorTaskAsyncProgress> encryptionProgress = null, string fileExtension = DEFAULT_FILE_EXTENSION, bool maskFileName = false, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			string outputFullPath = String.Empty;
+			string outputFile = String.Empty;
+			//validate the senderPrivateKey
+			if (senderPrivateKey == null || senderPrivateKey.Length != ASYNC_KEY_LENGTH)
+			{
+				throw new ArgumentOutOfRangeException(nameof(senderPrivateKey), "invalid senderPrivateKey");
+			}
+			//validate the senderPublicKey
+			if (senderPublicKey == null || senderPublicKey.Length != ASYNC_KEY_LENGTH)
+			{
+				throw new ArgumentOutOfRangeException(nameof(senderPublicKey), "invalid senderPublicKey");
+			}
+			//validate the recipientPublicKey
+			if (recipientPublicKey == null || recipientPublicKey.Length != ASYNC_KEY_LENGTH)
+			{
+				throw new ArgumentOutOfRangeException(nameof(recipientPublicKey), "invalid recipientPublicKey");
+			}
+			//validate the outputFolder
+			if (string.IsNullOrEmpty(outputFolder))
+			{
+				//use the same directory as inputFile
+				throw new ArgumentOutOfRangeException(nameof(outputFolder), "invalid outputFolder");
+			}
+		    if (!Directory.Exists(outputFolder))
+		    {
+		        throw new DirectoryNotFoundException("outputFolder could not be found.");
+		    }
+		    //generate the name of the output file
+			if (maskFileName)
+			{
+				//store the output file with a masked file name and the fileExtension
+				outputFile = Utils.GetRandomFileName(MASKED_FILENAME_LENGTH, fileExtension);
+				outputFullPath = Path.Combine(outputFolder, outputFile);
+			}
+			else
+			{
+				//store the output file, just with the fileExtension
+				outputFile = originalFileName + fileExtension;
+				outputFullPath = Path.Combine(outputFolder, outputFile);
+			}
+			//go for the streams
+			using (FileStream fileStreamEncrypted = File.OpenWrite(outputFullPath))
+			{
+				
+					//initialize our file header for encryption
+					EncryptedFileHeader encryptedFileHeader = new EncryptedFileHeader(
+						CURRENT_VERSION, NONCE_LENGTH, CHUNK_BASE_NONCE_LENGTH, inputStream.Length,
+						senderPrivateKey, senderPublicKey, recipientPublicKey);
+					//protect and set the file name to the header
+					encryptedFileHeader.ProtectFileName(originalFileName, MAX_FILENAME_LENGTH);
+					//generate and set the checksum to validate our file header on decryption
+					encryptedFileHeader.SetHeaderChecksum(HEADER_CHECKSUM_LENGTH);
+					//write the file header to the stream
+					Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileHeader, PrefixStyle.Base128, 1);
+					//we start at chunk number 0
+					int chunkNumber = CHUNK_COUNT_START;
+					//used to calculate the footer checksum
+					long overallChunkLength = 0;
+					//used for progress reporting
+					long overallBytesRead = 0;
+					int bytesRead;
+					do
+					{
+						//cancel the task if requested
+						cancellationToken.ThrowIfCancellationRequested();
+						//start reading the unencrypted file in chunks of the given length: CHUNK_LENGTH
+						byte[] unencryptedChunk = new byte[CHUNK_LENGTH];
+						bytesRead = await inputStream.ReadAsync(unencryptedChunk, 0, CHUNK_LENGTH, cancellationToken).ConfigureAwait(false);
+						//check if there is still some work
+						if (bytesRead != 0)
+						{
+							//prepare the EncryptedFileChunk
+							EncryptedFileChunk encryptedFileChunk = new EncryptedFileChunk();
+							byte[] readedBytes = new byte[bytesRead];
+							//cut unreaded bytes
+							Array.Copy(unencryptedChunk, readedBytes, bytesRead);
+							//check if the file is smaller or equal the CHUNK_LENGTH
+							if (encryptedFileHeader.UnencryptedFileLength <= CHUNK_LENGTH)
+							{
+								//so we have the one and only chunk
+								encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, encryptedFileHeader.UnencryptedEphemeralKey, true);
+							}
+							else
+							{
+								//let`s check if this chunk is smaller than the given CHUNK_LENGTH
+								if (bytesRead < CHUNK_LENGTH)
+								{
+									//it`s the last chunk in the stream
+									encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, encryptedFileHeader.UnencryptedEphemeralKey, true);
+								}
+								else
+								{
+									//it`s a full chunk
+									encryptedFileChunk = EncryptFileChunk(readedBytes, chunkNumber, encryptedFileHeader.BaseNonce, encryptedFileHeader.UnencryptedEphemeralKey, false);
+								}
+							}
+							overallChunkLength += encryptedFileChunk.Chunk.Length;
+							//write encryptedFileChunk to the output stream
+							Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileChunk, PrefixStyle.Base128, 2);
+							//increment for the next chunk
+							chunkNumber++;
+							overallBytesRead += bytesRead;
+							//report status
+							if (encryptionProgress != null)
+							{
+								var args = new StreamCryptorTaskAsyncProgress();
+								args.ProgressPercentage = (int)(encryptedFileHeader.UnencryptedFileLength <= 0 ? 0 : (100 * overallBytesRead) / encryptedFileHeader.UnencryptedFileLength);
+								encryptionProgress.Report(args);
+							}
+						}
+						else
+						{
+							//Prepare the EncryptedFileFooter for encryption.
+							EncryptedFileFooter encryptedFileFooter = new EncryptedFileFooter();
+							//generate the FooterChecksum
+							encryptedFileFooter.SetFooterChecksum(BitConverter.GetBytes(chunkNumber), BitConverter.GetBytes(overallChunkLength), encryptedFileHeader.UnencryptedEphemeralKey, FOOTER_CHECKSUM_LENGTH);
+							//put the footer to the stream
+							Serializer.SerializeWithLengthPrefix(fileStreamEncrypted, encryptedFileFooter, PrefixStyle.Base128, 3);
+						}
+					} while (bytesRead != 0);
+				
+			}
+			return outputFile;
+		}
+
+
+		/// <summary>
+		/// Decrypts a file asynchron with libsodium and protobuf-net.
+		/// </summary>
+		/// <param name="keyPair">The KeyPair to decrypt the ephemeralKey.</param>
+		/// <param name="inputFile">An encrypted file.</param>
+		/// <param name="outputFolder">There the decrypted file will be stored.</param>
+		/// <param name="decryptionProgress">StreamCryptorTaskAsyncProgress object.</param>
+		/// <param name="overWrite">Overwrite the output file if it exist.</param>
+		/// <param name="cancellationToken">Token to request task cancellation.</param>
+		/// <returns>The fullpath to the decrypted file.</returns>
+		/// <exception cref="ArgumentOutOfRangeException"></exception>
+		/// <exception cref="FileNotFoundException"></exception>
+		/// <exception cref="DirectoryNotFoundException"></exception>
+		/// <exception cref="BadLastFileChunkException"></exception>
+		/// <exception cref="BadFileChunkException"></exception>
+		/// <exception cref="BadFileFooterException"></exception>
+		/// <exception cref="BadFileHeaderException"></exception>
+		/// <exception cref="IOException"></exception>
+		/// <exception cref="OperationCanceledException"></exception>
+		public static async Task<string> DecryptFileWithStreamAsync(KeyPair keyPair, string inputFile, string outputFolder, IProgress<StreamCryptorTaskAsyncProgress> decryptionProgress = null, bool overWrite = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             //validate the keyPair
             if (!ValidateKeyPair(keyPair))

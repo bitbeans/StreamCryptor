@@ -123,6 +123,103 @@ namespace Tests
 			File.Delete(Path.Combine(TestContext.CurrentContext.TestDirectory, outputDirectory, encryptedFile));
 			File.Delete(Path.Combine(TestContext.CurrentContext.TestDirectory, outputDirectory, decryptedFile));
 		}
+		/// <summary>
+		///     Encrypt and decrypt a filestream for external.
+		/// </summary>
+		[Test]
+		public async Task WorkWithLargeFileStreamExternalTestAsync()
+		{
+			const long testfileSizeGb = 1;
+			var rawFile = Path.Combine(TestContext.CurrentContext.TestDirectory, "Testfiles", "largefile.dat");
+			var outputDirectory = Path.Combine(TestContext.CurrentContext.TestDirectory, "Testfiles", "decrypted");
+			const string privateKeyRecipient = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+			const string publicKeyRecipient = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+			const string privateKeySender = "da9e790389c2d94d165d60369e0945e3fe50451a55989b80b576ce69f08a24f1";
+			const string publicKeySender = "385bb72a7e4ca582b4eb59a364516d885659e753d4b2230c2f03f2e495b21c42";
+
+			Console.WriteLine("Generating 100 MB testfile . . .");
+			File.Delete(rawFile);
+			var fs = new FileStream(rawFile, FileMode.CreateNew);
+			fs.Seek(testfileSizeGb * 1024 * 1024 * 100, SeekOrigin.Begin);
+			fs.WriteByte(0);
+			fs.Close();
+
+		    var fso = new FileStream(rawFile, FileMode.Open);
+			Console.Write("Encrypting testfile . . .\n");
+			var encryptedFile = await Cryptor.EncryptFileStreamWithStreamAsync(
+				Utilities.HexToBinary(privateKeySender),
+				Utilities.HexToBinary(publicKeySender),
+				Utilities.HexToBinary(publicKeyRecipient),
+				fso, outputDirectory, "largefile.dat", null, ".whatever", true
+				);
+
+			fso.Close();
+
+			Console.Write("Decrypting testfile (" + encryptedFile + ") . . .\n");
+			var decryptedFile = await Cryptor.DecryptFileWithStreamAsync(
+				Utilities.HexToBinary(privateKeyRecipient),
+				Path.Combine(outputDirectory, encryptedFile),
+				outputDirectory);
+
+			Console.Write("Get checksum of testfiles . . .\n");
+			Assert.AreEqual(Utils.GetChecksum(rawFile),
+				Utils.GetChecksum(Path.Combine(outputDirectory, decryptedFile)));
+					
+			//clear garbage 
+			File.Delete(Path.Combine(outputDirectory, encryptedFile));
+			File.Delete(Path.Combine(outputDirectory, decryptedFile));
+			File.Delete(rawFile);
+		}
+
+		/// <summary>
+		///     Encrypt and decrypt a memorystream for external.
+		/// </summary>
+		[Test]
+		public async Task WorkWithLargeMemoryStreamExternalTestAsync()
+		{
+			const long testfileSizeGb = 1;
+			var rawFile = Path.Combine(TestContext.CurrentContext.TestDirectory, "Testfiles", "largefile.dat");
+			var outputDirectory = Path.Combine(TestContext.CurrentContext.TestDirectory, "Testfiles", "decrypted");
+			const string privateKeyRecipient = "31d9040b00a170532929b37db0afcb989e4175f96e5f9667ee8cbf5706679a71";
+			const string publicKeyRecipient = "6d0deec730700f9f60687a4e6e8755157ca22ea2f3815b9bf14b1fe9ae6a0b4d";
+			const string privateKeySender = "da9e790389c2d94d165d60369e0945e3fe50451a55989b80b576ce69f08a24f1";
+			const string publicKeySender = "385bb72a7e4ca582b4eb59a364516d885659e753d4b2230c2f03f2e495b21c42";
+
+			Console.WriteLine("Generating 100 MB testfile . . .");
+			File.Delete(rawFile);
+			var fs = new FileStream(rawFile, FileMode.CreateNew);
+			fs.Seek(testfileSizeGb * 1024 * 1024 * 100, SeekOrigin.Begin);
+			fs.WriteByte(0);
+			fs.Close();
+			var fso = new FileStream(rawFile, FileMode.Open);
+			var ms = new MemoryStream();
+		    await fso.CopyToAsync(ms);
+		    ms.Position = 0;
+
+			Console.Write("Encrypting memorystream to file . . .\n");
+			var encryptedFile = await Cryptor.EncryptFileStreamWithStreamAsync(
+				Utilities.HexToBinary(privateKeySender),
+				Utilities.HexToBinary(publicKeySender),
+				Utilities.HexToBinary(publicKeyRecipient),
+				ms, outputDirectory, "largefile.dat", null, ".whatever", true
+				);
+			fso.Close();
+
+			Console.Write("Decrypting testfile (" + encryptedFile + ") . . .\n");
+			var decryptedFile = await Cryptor.DecryptFileWithStreamAsync(
+				Utilities.HexToBinary(privateKeyRecipient),
+				Path.Combine(outputDirectory, encryptedFile),
+				outputDirectory);
+
+			Console.Write("Get checksum of testfiles . . .\n");
+			Assert.AreEqual(Utils.GetChecksum(rawFile),
+				Utils.GetChecksum(Path.Combine(outputDirectory, decryptedFile)));
+
+			//clear garbage 
+			File.Delete(Path.Combine(outputDirectory, encryptedFile));
+			File.Delete(Path.Combine(outputDirectory, decryptedFile));
+			File.Delete(rawFile);
+		}
 
 		/// <summary>
 		///     Self encrypt and decrypt an image file async.
