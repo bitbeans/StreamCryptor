@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("StreamCryptor")]
-[assembly: AssemblyCopyright("Copyright © Christian Hermann 2014 - 2016")]
+[assembly: AssemblyCopyright("Copyright © Christian Hermann 2014 - 2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
