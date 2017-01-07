@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>StreamCryptor</id>
-        <version>0.5.0</version>
+        <version>0.5.1</version>
         <authors>Christian Hermann</authors>
         <owners>Christian Hermann</owners>
         <licenseUrl>https://raw.githubusercontent.com/bitbeans/StreamCryptor/master/LICENSE.md</licenseUrl>
@@ -22,7 +22,10 @@ All cryptographic operations are performed via libsodium-net (and thus libsodium
 
 For more details and examples visit the github project site.</description>
         <summary>Stream encryption &amp; decryption with libsodium and protobuf</summary>
-        <releaseNotes>0.5.0
+        <releaseNotes>0.5.1
+* Updated libsodium-net to 10.0.0 (libsodium v.1.0.11)
+* Added support for encoding a stream directly without using a file 
+0.5.0
 * Updated libsodium-net to 0.9.0 (libsodium v1.0.7) 
 0.5.0-beta2
 * Changed file name padding to PKCS7
@@ -65,13 +68,13 @@ For more details and examples visit the github project site.</description>
 * There was a bug on decrypting files with external private keys
 0.1.15
 * Changed TargetFrameworkVersion from v4.5 to v4.0</releaseNotes>
-        <copyright>Copyright (c) 2014 - 2015 Christian Hermann (bitbeans)</copyright>
+        <copyright>Copyright (c) 2014 - 2017 Christian Hermann (bitbeans)</copyright>
         <language>en-US</language>
         <tags>stream encryption protobuf libsodium XSalsa20 Curve25519 Poly1305</tags>
         <dependencies>
             <group targetFramework=".NETFramework4.5">
-                <dependency id="protobuf-net" version="2.0.0.668" />
-                <dependency id="libsodium-net" version="0.9.0" />
+                <dependency id="libsodium-net" version="0.10.0" />
+                <dependency id="protobuf-net" version="2.1.0" />
             </group>
         </dependencies>
     </metadata>
